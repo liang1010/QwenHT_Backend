@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using QwenHT.Data;
 using QwenHT.Models;
 
@@ -203,47 +204,58 @@ namespace QwenHT.Controllers
             if (pageSize < 1) pageSize = 10;
             if (pageSize > 100) pageSize = 100; // Limit page size for performance
 
-            // Get all users from UserManager
-            var allUsers = _userManager.Users.ToList();
+            // 1. Build the base query using the DbContext
+            // Use AsNoTracking for better performance if you're only reading
+            IQueryable<ApplicationUser> query = _context.Users.AsNoTracking();
 
-            // Apply search filter if provided
+
+            // --- NEW CODE (Database-Translated) ---
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
-                allUsers = allUsers.Where(u => 
-                    u.Email.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                    (!string.IsNullOrEmpty(u.FirstName) && u.FirstName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
-                    (!string.IsNullOrEmpty(u.LastName) && u.LastName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
-                ).ToList();
+                query = query.Where(u =>
+                    EF.Functions.Like(u.Email, $"%{searchTerm}%") ||
+                    EF.Functions.Like(u.FirstName, $"%{searchTerm}%") ||
+                    EF.Functions.Like(u.LastName, $"%{searchTerm}%")
+                );
             }
 
-            // Apply sorting
-            var sortedUsers = sortField?.ToLower() switch
+            // 3. Determine the order to apply (before pagination)
+            // Default sorting
+            IOrderedQueryable<ApplicationUser> orderedQuery = query switch
             {
-                "email" => sortDirection?.ToLower() == "desc"
-                    ? allUsers.OrderByDescending(u => u.Email).ToList()
-                    : allUsers.OrderBy(u => u.Email).ToList(),
-                "firstname" => sortDirection?.ToLower() == "desc"
-                    ? allUsers.OrderByDescending(u => u.FirstName).ToList()
-                    : allUsers.OrderBy(u => u.FirstName).ToList(),
-                "lastname" => sortDirection?.ToLower() == "desc"
-                    ? allUsers.OrderByDescending(u => u.LastName).ToList()
-                    : allUsers.OrderBy(u => u.LastName).ToList(),
-                "isactive" => sortDirection?.ToLower() == "desc"
-                    ? allUsers.OrderByDescending(u => u.IsActive).ToList()
-                    : allUsers.OrderBy(u => u.IsActive).ToList(),
-                _ => allUsers.OrderBy(u => u.Email).ToList() // Default sorting
+                _ when sortField?.ToLower() == "email" => sortDirection?.ToLower() == "desc"
+                    ? query.OrderByDescending(u => u.Email)
+                    : query.OrderBy(u => u.Email),
+                _ when sortField?.ToLower() == "firstname" => sortDirection?.ToLower() == "desc"
+                    ? query.OrderByDescending(u => u.FirstName ?? "") // Handle potential nulls
+                    : query.OrderBy(u => u.FirstName ?? ""),
+                _ when sortField?.ToLower() == "lastname" => sortDirection?.ToLower() == "desc"
+                    ? query.OrderByDescending(u => u.LastName ?? "") // Handle potential nulls
+                    : query.OrderBy(u => u.LastName ?? ""),
+                _ when sortField?.ToLower() == "isactive" => sortDirection?.ToLower() == "desc"
+                    ? query.OrderByDescending(u => u.IsActive)
+                    : query.OrderBy(u => u.IsActive),
+                _ => query.OrderBy(u => u.Email) // Default sort
             };
 
-            // Get total count before pagination
-            var totalCount = sortedUsers.Count;
+            // 4. Get total count of matching records *before* pagination
+            var totalCount = await orderedQuery.CountAsync();
 
-            // Apply pagination
-            var pagedUsers = sortedUsers.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            // 5. Apply pagination (Skip and Take)
+            var pagedUsers = await orderedQuery
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(); // Execute the query with pagination applied
 
-            // Convert to UserDto with roles
+            // 6. Convert to DTOs
+            // Note: Getting roles for each user individually is still potentially slow.
+            // Consider optimizing role retrieval if necessary (see comments below).
             var userDtos = new List<UserDto>();
             foreach (var user in pagedUsers)
             {
+                // This still makes N database calls for roles (one per user on the page)
+                // For better performance with roles, consider a single query joining Users and Roles
+                // or fetching all role assignments for the paged user IDs in one go.
                 var roles = await _userManager.GetRolesAsync(user);
                 userDtos.Add(new UserDto
                 {
@@ -266,6 +278,7 @@ namespace QwenHT.Controllers
 
             return Ok(response);
         }
+
         public class UpdateUserDto
         {
             public string? Email { get; set; }
