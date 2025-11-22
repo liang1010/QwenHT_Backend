@@ -202,7 +202,7 @@ namespace QwenHT.Controllers
             // Validate pagination parameters
             if (page < 1) page = 1;
             if (pageSize < 1) pageSize = 10;
-            if (pageSize > 100) pageSize = 100; // Limit page size for performance
+            //if (pageSize > 100) pageSize = 100; // Limit page size for performance
 
             // 1. Build the base query using the DbContext
             // Use AsNoTracking for better performance if you're only reading
