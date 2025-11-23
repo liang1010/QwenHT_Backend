@@ -32,14 +32,14 @@ namespace QwenHT.Controllers
                 {
                     // ClaimTypes.Name maps to http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name
                     // This will be the display name for the user
-                    new Claim(ClaimTypes.Name, user.UserName), // Use full name if available, otherwise username
-                    new Claim(ClaimTypes.Email, user.Email),
+                    new Claim("username", user.UserName), // Use full name if available, otherwise username
+                    new Claim("email", user.Email),
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 };
 
                 foreach (var userRole in userRoles)
                 {
-                    authClaims.Add(new Claim(ClaimTypes.Role, userRole));
+                    authClaims.Add(new Claim("roles", userRole));
                 }
 
                 var token = GetToken(authClaims);
@@ -97,7 +97,7 @@ namespace QwenHT.Controllers
             var token = new JwtSecurityToken(
                 issuer: _configuration["JWT:ValidIssuer"],
                 audience: _configuration["JWT:ValidAudience"],
-                expires: DateTime.Now.AddHours(3),
+                expires: DateTime.Now.AddMinutes(10),
                 claims: authClaims,
                 signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
                 );

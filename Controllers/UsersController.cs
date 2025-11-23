@@ -34,6 +34,7 @@ namespace QwenHT.Controllers
                 userDtos.Add(new UserDto
                 {
                     Id = user.Id,
+                    UserName = user.UserName,
                     Email = user.Email,
                     FirstName = user.FirstName,
                     LastName = user.LastName,
@@ -58,6 +59,7 @@ namespace QwenHT.Controllers
             var userDto = new UserDto
             {
                 Id = user.Id,
+                UserName = user.UserName,
                 Email = user.Email,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
@@ -78,7 +80,7 @@ namespace QwenHT.Controllers
 
             var user = new ApplicationUser
             {
-                UserName = userDto.Email,
+                UserName = userDto.UserName,
                 Email = userDto.Email,
                 FirstName = userDto.FirstName,
                 LastName = userDto.LastName,
@@ -90,6 +92,8 @@ namespace QwenHT.Controllers
             {
                 return BadRequest(result.Errors);
             }
+
+            await _userManager.AddPasswordAsync(user, "Password@1");
 
             // Add user to roles if specified
             if (userDto.Roles != null && userDto.Roles.Any())
@@ -115,7 +119,7 @@ namespace QwenHT.Controllers
             }
 
             user.Email = model.Email;
-            user.UserName = model.Email;
+            user.UserName = model.UserName;
             user.FirstName = model.FirstName;
             user.LastName = model.LastName;
             user.IsActive = model.IsActive;
@@ -147,7 +151,11 @@ namespace QwenHT.Controllers
                 return NotFound();
             }
 
-            var result = await _userManager.DeleteAsync(user);
+            //var result = await _userManager.DeleteAsync(user);
+
+            user.IsActive = false;
+
+            var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
             {
                 return BadRequest(result.Errors);
@@ -159,7 +167,7 @@ namespace QwenHT.Controllers
         [HttpPost("{id}/change-password")]
         public async Task<IActionResult> ChangePassword(string id, [FromBody] ChangePasswordModel model)
         {
-            var user = await _userManager.FindByIdAsync(id);
+            var user = await _userManager.FindByNameAsync(id);
             if (user == null)
             {
                 return NotFound();
@@ -185,6 +193,7 @@ namespace QwenHT.Controllers
             result = await _userManager.AddPasswordAsync(user, model.NewPassword);
             if (!result.Succeeded)
             {
+                await _userManager.AddPasswordAsync(user, model.CurrentPassword);
                 return BadRequest(result.Errors);
             }
 
@@ -260,6 +269,7 @@ namespace QwenHT.Controllers
                 userDtos.Add(new UserDto
                 {
                     Id = user.Id,
+                    UserName = user.UserName,
                     Email = user.Email,
                     FirstName = user.FirstName,
                     LastName = user.LastName,
@@ -281,6 +291,7 @@ namespace QwenHT.Controllers
 
         public class UpdateUserDto
         {
+            public string? UserName { get; set; }
             public string? Email { get; set; }
             public string? FirstName { get; set; }
             public string? LastName { get; set; }
