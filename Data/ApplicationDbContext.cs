@@ -32,6 +32,7 @@ namespace QwenHT.Data
             builder.Entity<NavigationItem>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnType("uniqueidentifier").ValueGeneratedNever(); // GUID, not auto-generated
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Route).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Icon).HasMaxLength(200);
@@ -40,6 +41,7 @@ namespace QwenHT.Data
                 entity.HasOne(n => n.Parent)
                       .WithMany(n => n.Children)
                       .HasForeignKey(n => n.ParentId)
+                      .HasConstraintName("FK_NavigationItem_Parent_NavigationItem") // Add constraint name for clarity
                       .OnDelete(DeleteBehavior.Restrict);
             });
 

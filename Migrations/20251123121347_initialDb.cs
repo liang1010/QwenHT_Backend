@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace QwenHT.Migrations
 {
     /// <inheritdoc />
-    public partial class Initial : Migration
+    public partial class initialDb : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -58,12 +58,11 @@ namespace QwenHT.Migrations
                 name: "NavigationItems",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Icon = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     Route = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    ParentId = table.Column<int>(type: "int", nullable: true),
+                    ParentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     Order = table.Column<int>(type: "int", nullable: false),
                     IsVisible = table.Column<bool>(type: "bit", nullable: false)
                 },
@@ -71,7 +70,7 @@ namespace QwenHT.Migrations
                 {
                     table.PrimaryKey("PK_NavigationItems", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_NavigationItems_NavigationItems_ParentId",
+                        name: "FK_NavigationItem_Parent_NavigationItem",
                         column: x => x.ParentId,
                         principalTable: "NavigationItems",
                         principalColumn: "Id",
@@ -188,13 +187,12 @@ namespace QwenHT.Migrations
                 name: "RoleNavigations",
                 columns: table => new
                 {
-                    RoleId = table.Column<int>(type: "int", nullable: false),
-                    NavigationItemId = table.Column<int>(type: "int", nullable: false),
-                    RoleName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false)
+                    RoleName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
+                    NavigationItemId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_RoleNavigations", x => new { x.RoleId, x.NavigationItemId });
+                    table.PrimaryKey("PK_RoleNavigations", x => new { x.RoleName, x.NavigationItemId });
                     table.ForeignKey(
                         name: "FK_RoleNavigations_NavigationItems_NavigationItemId",
                         column: x => x.NavigationItemId,

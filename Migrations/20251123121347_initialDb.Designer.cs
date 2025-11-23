@@ -12,15 +12,15 @@ using QwenHT.Data;
 namespace QwenHT.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251111173613_UpdateRoleNavigation")]
-    partial class UpdateRoleNavigation
+    [Migration("20251123121347_initialDb")]
+    partial class initialDb
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.0")
+                .HasAnnotation("ProductVersion", "8.0.22")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -239,11 +239,8 @@ namespace QwenHT.Migrations
 
             modelBuilder.Entity("QwenHT.Models.NavigationItem", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Icon")
                         .HasMaxLength(200)
@@ -260,8 +257,8 @@ namespace QwenHT.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ParentId")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Route")
                         .IsRequired()
@@ -281,8 +278,8 @@ namespace QwenHT.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
-                    b.Property<int>("NavigationItemId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("NavigationItemId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("RoleName", "NavigationItemId");
 
@@ -347,7 +344,8 @@ namespace QwenHT.Migrations
                     b.HasOne("QwenHT.Models.NavigationItem", "Parent")
                         .WithMany("Children")
                         .HasForeignKey("ParentId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_NavigationItem_Parent_NavigationItem");
 
                     b.Navigation("Parent");
                 });

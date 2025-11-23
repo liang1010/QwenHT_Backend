@@ -27,7 +27,7 @@ namespace QwenHT.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<NavigationItem>> GetNavigationItem(int id)
+        public async Task<ActionResult<NavigationItem>> GetNavigationItem(Guid id)
         {
             var item = await _navigationService.GetNavigationItemAsync(id);
             if (item == null)
@@ -46,7 +46,7 @@ namespace QwenHT.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateNavigationItem(int id, [FromBody] NavigationItem item)
+        public async Task<IActionResult> UpdateNavigationItem(Guid id, [FromBody] NavigationItem item)
         {
             var updatedItem = await _navigationService.UpdateNavigationItemAsync(id, item);
             if (updatedItem == null)
@@ -58,7 +58,7 @@ namespace QwenHT.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteNavigationItem(int id)
+        public async Task<IActionResult> DeleteNavigationItem(Guid id)
         {
             var result = await _navigationService.DeleteNavigationItemAsync(id);
             if (!result)
@@ -70,7 +70,7 @@ namespace QwenHT.Controllers
         }
 
         [HttpPost("{navigationId}/roles/{roleName}")]
-        public async Task<IActionResult> AssignRoleToNavigation(int navigationId, string roleName)
+        public async Task<IActionResult> AssignRoleToNavigation(Guid navigationId, string roleName)
         {
             var result = await _navigationService.AssignRoleToNavigationAsync(navigationId, roleName);
             if (!result)
@@ -82,7 +82,7 @@ namespace QwenHT.Controllers
         }
 
         [HttpDelete("{navigationId}/roles/{roleName}")]
-        public async Task<IActionResult> RemoveRoleFromNavigation(int navigationId, string roleName)
+        public async Task<IActionResult> RemoveRoleFromNavigation(Guid navigationId, string roleName)
         {
             var result = await _navigationService.RemoveRoleFromNavigationAsync(navigationId, roleName);
             if (!result)
@@ -111,7 +111,8 @@ namespace QwenHT.Controllers
         [Authorize]
         public async Task<ActionResult<IEnumerable<NavigationItem>>> GetUserNavigation()
         {
-            var user = await _userManager.FindByNameAsync(User.Identity.Name);
+            var username = User.Claims.FirstOrDefault(c => c.Type == "username")?.Value; 
+            var user = await _userManager.FindByNameAsync(username);
             if (user == null)
             {
                 return Unauthorized();

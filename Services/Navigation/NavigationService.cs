@@ -8,12 +8,12 @@ namespace QwenHT.Services.Navigation
     {
         Task<List<NavigationItem>> GetNavigationForUserAsync(string userId, IList<string> userRoles);
         Task<List<NavigationItem>> GetAllNavigationItemsAsync();
-        Task<NavigationItem?> GetNavigationItemAsync(int id);
+        Task<NavigationItem?> GetNavigationItemAsync(Guid id);
         Task<NavigationItem> CreateNavigationItemAsync(NavigationItem item);
-        Task<NavigationItem?> UpdateNavigationItemAsync(int id, NavigationItem item);
-        Task<bool> DeleteNavigationItemAsync(int id);
-        Task<bool> AssignRoleToNavigationAsync(int navigationId, string roleName);
-        Task<bool> RemoveRoleFromNavigationAsync(int navigationId, string roleName);
+        Task<NavigationItem?> UpdateNavigationItemAsync(Guid id, NavigationItem item);
+        Task<bool> DeleteNavigationItemAsync(Guid id);
+        Task<bool> AssignRoleToNavigationAsync(Guid navigationId, string roleName);
+        Task<bool> RemoveRoleFromNavigationAsync(Guid navigationId, string roleName);
     }
 
     public class NavigationService : INavigationService
@@ -28,23 +28,24 @@ namespace QwenHT.Services.Navigation
         public async Task<List<NavigationItem>> GetNavigationForUserAsync(string userId, IList<string> userRoles)
         {
             var roleNames = userRoles.Select(r => r.ToLower()).ToList();
-            
+
             var navigationItems = await _context.NavigationItems
                 .Include(n => n.Children)
+                    .ThenInclude(c => c.RoleNavigations)
                 .Include(n => n.RoleNavigations)
                 .Where(n => n.IsVisible && n.ParentId == null) // Only top-level items
                 .ToListAsync();
 
             var accessibleItems = navigationItems
-                .Where(item => item.RoleNavigations.Any(rn => roleNames.Contains(rn.RoleName.ToLower())))
+                .Where(item => item.RoleNavigations?.Any(rn => roleNames.Contains(rn.RoleName.ToLower())) == true)
                 .ToList();
 
             // Process children
             foreach (var item in accessibleItems)
             {
                 item.Children = item.Children
-                    .Where(child => child.IsVisible && 
-                           child.RoleNavigations.Any(rn => roleNames.Contains(rn.RoleName.ToLower())))
+                    .Where(child => child.IsVisible &&
+                           child.RoleNavigations?.Any(rn => roleNames.Contains(rn.RoleName.ToLower())) == true)
                     .ToList();
             }
 
@@ -57,27 +58,33 @@ namespace QwenHT.Services.Navigation
         {
             return await _context.NavigationItems
                 .Include(n => n.Children)
+                    .ThenInclude(c => c.RoleNavigations)
                 .Include(n => n.RoleNavigations)
                 .OrderBy(n => n.Order)
                 .ToListAsync();
         }
 
-        public async Task<NavigationItem?> GetNavigationItemAsync(int id)
+        public async Task<NavigationItem?> GetNavigationItemAsync(Guid id)
         {
             return await _context.NavigationItems
                 .Include(n => n.Children)
+                    .ThenInclude(c => c.RoleNavigations)
                 .Include(n => n.RoleNavigations)
                 .FirstOrDefaultAsync(n => n.Id == id);
         }
 
         public async Task<NavigationItem> CreateNavigationItemAsync(NavigationItem item)
         {
+            if (item.Id == Guid.Empty)
+            {
+                item.Id = Guid.NewGuid();
+            }
             _context.NavigationItems.Add(item);
             await _context.SaveChangesAsync();
             return item;
         }
 
-        public async Task<NavigationItem?> UpdateNavigationItemAsync(int id, NavigationItem item)
+        public async Task<NavigationItem?> UpdateNavigationItemAsync(Guid id, NavigationItem item)
         {
             var existingItem = await _context.NavigationItems.FindAsync(id);
             if (existingItem == null)
@@ -94,7 +101,7 @@ namespace QwenHT.Services.Navigation
             return existingItem;
         }
 
-        public async Task<bool> DeleteNavigationItemAsync(int id)
+        public async Task<bool> DeleteNavigationItemAsync(Guid id)
         {
             var item = await _context.NavigationItems.FindAsync(id);
             if (item == null)
@@ -109,7 +116,7 @@ namespace QwenHT.Services.Navigation
             return true;
         }
 
-        public async Task<bool> AssignRoleToNavigationAsync(int navigationId, string roleName)
+        public async Task<bool> AssignRoleToNavigationAsync(Guid navigationId, string roleName)
         {
             var existing = await _context.RoleNavigations
                 .FirstOrDefaultAsync(rn => rn.NavigationItemId == navigationId && rn.RoleName == roleName);
@@ -128,7 +135,7 @@ namespace QwenHT.Services.Navigation
             return true;
         }
 
-        public async Task<bool> RemoveRoleFromNavigationAsync(int navigationId, string roleName)
+        public async Task<bool> RemoveRoleFromNavigationAsync(Guid navigationId, string roleName)
         {
             var roleNav = await _context.RoleNavigations
                 .FirstOrDefaultAsync(rn => rn.NavigationItemId == navigationId && rn.RoleName == roleName);

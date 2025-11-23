@@ -1,8 +1,7 @@
-using QwenHT.Data;
-using QwenHT.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
+using QwenHT.Data;
+using QwenHT.Models;
 
 namespace QwenHT.Services
 {
@@ -92,38 +91,82 @@ namespace QwenHT.Services
                 }
             }
 
+            Guid HomeGuid = Guid.NewGuid();
+            Guid ManageGuid = Guid.NewGuid();
+            Guid DashboardGuid = Guid.NewGuid();
+            Guid UserGuid = Guid.NewGuid();
+            Guid LandingGuid = Guid.NewGuid();
+
             // Seed navigation items if they don't exist
             if (!context.NavigationItems.AsNoTracking().Any())
             {
-                var navigationItems = new List<NavigationItem>
+                // First, add the parent navigation items
+                var parentItems = new List<NavigationItem>
                 {
                     new NavigationItem
                     {
-                        Name = "Dashboard",
-                        Route = "/dashboard",
-                        Icon = "fa fa-tachometer-alt",
+                        Id = HomeGuid,
+                        Name = "Home",
+                        Route = "/",
+                        Icon = "",
                         Order = 1,
                         IsVisible = true
                     },
                     new NavigationItem
                     {
-                        Name = "Users",
-                        Route = "/users",
-                        Icon = "fa fa-users",
+                        Id = ManageGuid,
+                        Name = "Manage",
+                        Route = "",
+                        Icon = "",
                         Order = 2,
-                        IsVisible = true
-                    },
-                    new NavigationItem
-                    {
-                        Name = "Reports",
-                        Route = "/reports",
-                        Icon = "fa fa-chart-bar",
-                        Order = 3,
                         IsVisible = true
                     }
                 };
 
-                foreach (var item in navigationItems)
+                foreach (var item in parentItems)
+                {
+                    context.NavigationItems.Add(item);
+                }
+
+                // Save the parent items to get their IDs
+                await context.SaveChangesAsync();
+
+                // Now add the child navigation items
+                var childItems = new List<NavigationItem>
+                {
+                    new NavigationItem
+                    {
+                        Id=DashboardGuid,
+                        Name = "Dashboard",
+                        Route = "/app/dashboard",
+                        Icon = "pi pi-fw pi-home",
+                        Order = 1,
+                        IsVisible = true,
+                        ParentId = HomeGuid // Home
+                    },
+                    new NavigationItem
+                    {
+                        Id = UserGuid,
+                        Name = "User Management",
+                        Route = "/app/manage/user",
+                        Icon = "pi pi-fw pi-user",
+                        Order = 2,
+                        IsVisible = true,
+                        ParentId = ManageGuid // Manage
+                    },
+                    new NavigationItem
+                    {
+                        Id=LandingGuid,
+                        Name = "Landing",
+                        Route = "/app/landing",
+                        Icon = "pi pi-fw pi-globe",
+                        Order = 3,
+                        IsVisible = true,
+                        ParentId = HomeGuid // Home
+                    }
+                };
+
+                foreach (var item in childItems)
                 {
                     context.NavigationItems.Add(item);
                 }
@@ -136,38 +179,61 @@ namespace QwenHT.Services
             {
                 // Assign navigation items to roles
                 var allRoles = new[] { "Admin", "Supervisor", "User", "Guest" };
-                var supervisorAndAboveRoles = new[] { "Admin", "Supervisor" };
 
-                // All users can see Dashboard
+                // Home - available to all (Parent item - item ID 1)
                 foreach (var roleName in allRoles)
                 {
                     context.RoleNavigations.Add(new RoleNavigation
                     {
                         RoleName = roleName,
-                        NavigationItemId = 1 // Dashboard
+                        NavigationItemId = HomeGuid // Home
                     });
-                    await context.SaveChangesAsync();
                 }
+                await context.SaveChangesAsync();
 
-                // Only Supervisor and above can see Users
-                foreach (var roleName in supervisorAndAboveRoles)
+                // Manage - available to all (Parent item - item ID 2)
+                foreach (var roleName in allRoles)
                 {
                     context.RoleNavigations.Add(new RoleNavigation
                     {
                         RoleName = roleName,
-                        NavigationItemId = 2 // Users
+                        NavigationItemId = ManageGuid // Manage
                     });
-                    await context.SaveChangesAsync();
                 }
-
-                // Only Admin can see Reports
-                context.RoleNavigations.Add(new RoleNavigation
-                {
-                    RoleName = "Admin",
-                    NavigationItemId = 3 // Reports
-                });
                 await context.SaveChangesAsync();
 
+                // Dashboard - available to all (Child item - item ID 3)
+                foreach (var roleName in allRoles)
+                {
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = DashboardGuid // Dashboard
+                    });
+                }
+                await context.SaveChangesAsync();
+
+                // User Management - available to Admin and Supervisor (Child item - item ID 4)
+                foreach (var roleName in new[] { "Admin", "Supervisor" })
+                {
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = UserGuid // User Management
+                    });
+                }
+                await context.SaveChangesAsync();
+
+                // Landing - available to all (Child item - item ID 5)
+                foreach (var roleName in allRoles)
+                {
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = LandingGuid // Landing
+                    });
+                }
+                await context.SaveChangesAsync();
             }
         }
     }
