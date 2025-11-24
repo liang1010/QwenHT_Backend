@@ -96,6 +96,7 @@ namespace QwenHT.Services
             Guid DashboardGuid = Guid.NewGuid();
             Guid UserGuid = Guid.NewGuid();
             Guid LandingGuid = Guid.NewGuid();
+            Guid NaviGuid = Guid.NewGuid();
 
             // Seed navigation items if they don't exist
             if (!context.NavigationItems.AsNoTracking().Any())
@@ -163,7 +164,17 @@ namespace QwenHT.Services
                         Order = 3,
                         IsVisible = true,
                         ParentId = HomeGuid // Home
-                    }
+                    },
+                    new NavigationItem
+                    {
+                        Id = NaviGuid,
+                        Name = "User Management",
+                        Route = "/app/manage/navigation",
+                        Icon = "pi pi-fw pi-user",
+                        Order = 2,
+                        IsVisible = true,
+                        ParentId = ManageGuid // Manage
+                    },
                 };
 
                 foreach (var item in childItems)
@@ -220,6 +231,11 @@ namespace QwenHT.Services
                     {
                         RoleName = roleName,
                         NavigationItemId = UserGuid // User Management
+                    });
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = NaviGuid // User Management
                     });
                 }
                 await context.SaveChangesAsync();

@@ -75,7 +75,7 @@ namespace QwenHT.Services.Navigation
 
         public async Task<NavigationItem> CreateNavigationItemAsync(NavigationItem item)
         {
-            if (item.Id == Guid.Empty)
+            if (item.Id == null)
             {
                 item.Id = Guid.NewGuid();
             }
