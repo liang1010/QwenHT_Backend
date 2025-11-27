@@ -1,6 +1,7 @@
-using QwenHT.Models;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using QwenHT.Models;
+using System.Reflection.Emit;
 
 namespace QwenHT.Data
 {
@@ -13,6 +14,10 @@ namespace QwenHT.Data
 
         public DbSet<NavigationItem> NavigationItems { get; set; }
         public DbSet<RoleNavigation> RoleNavigations { get; set; }
+        public DbSet<Staff> Staff { get; set; }
+        public DbSet<StaffEmployment> StaffEmployments { get; set; }
+        public DbSet<StaffCompensation> StaffCompensations { get; set; }
+        public DbSet<BankAccount> BankAccounts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -54,6 +59,47 @@ namespace QwenHT.Data
                 entity.HasOne(rn => rn.NavigationItem)
                       .WithMany(ni => ni.RoleNavigations)
                       .HasForeignKey(rn => rn.NavigationItemId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+
+            // Staff
+            builder.Entity<Staff>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedNever(); // Guid generated in C#
+            });
+
+            // StaffEmployment
+            builder.Entity<StaffEmployment>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedNever();
+                entity.HasOne(e => e.Staff)
+                      .WithMany(s => s.Employments)
+                      .HasForeignKey(e => e.StaffId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // StaffCompensation
+            builder.Entity<StaffCompensation>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedNever();
+                entity.HasOne(e => e.Staff)
+                      .WithMany(s => s.Compensations)
+                      .HasForeignKey(e => e.StaffId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // BankAccount
+            builder.Entity<BankAccount>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedNever();
+                entity.HasOne(e => e.Staff)
+                      .WithMany(s => s.BankAccounts)
+                      .HasForeignKey(e => e.StaffId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
         }

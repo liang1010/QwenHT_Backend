@@ -19,6 +19,25 @@ namespace QwenHT.Controllers
             _userManager = userManager;
         }
 
+        //login usage
+        [HttpGet("user")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<NavigationItem>>> GetUserNavigation()
+        {
+            var username = User.Claims.FirstOrDefault(c => c.Type == "username")?.Value;
+            var user = await _userManager.FindByNameAsync(username);
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            var userRoles = await _userManager.GetRolesAsync(user);
+            var navigationItems = await _navigationService.GetNavigationForUserAsync(user.Id, userRoles);
+
+            return Ok(navigationItems);
+        }
+
+        //for maintenance
         [HttpGet]
         public async Task<ActionResult<IEnumerable<NavigationItem>>> GetNavigationItems()
         {
@@ -91,37 +110,6 @@ namespace QwenHT.Controllers
             }
 
             return Ok();
-        }
-    }
-
-    [ApiController]
-    [Route("api/navigation")]
-    public class UserNavigationController : ControllerBase
-    {
-        private readonly INavigationService _navigationService;
-        private readonly UserManager<ApplicationUser> _userManager;
-
-        public UserNavigationController(INavigationService navigationService, UserManager<ApplicationUser> userManager)
-        {
-            _navigationService = navigationService;
-            _userManager = userManager;
-        }
-
-        [HttpGet("user")]
-        [Authorize]
-        public async Task<ActionResult<IEnumerable<NavigationItem>>> GetUserNavigation()
-        {
-            var username = User.Claims.FirstOrDefault(c => c.Type == "username")?.Value; 
-            var user = await _userManager.FindByNameAsync(username);
-            if (user == null)
-            {
-                return Unauthorized();
-            }
-
-            var userRoles = await _userManager.GetRolesAsync(user);
-            var navigationItems = await _navigationService.GetNavigationForUserAsync(user.Id, userRoles);
-
-            return Ok(navigationItems);
         }
     }
 }
