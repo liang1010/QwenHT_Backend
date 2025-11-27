@@ -1,0 +1,354 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using QwenHT.Data;
+using QwenHT.Models;
+
+namespace QwenHT.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class StaffController : ControllerBase
+    {
+        private readonly ApplicationDbContext _context;
+
+        public StaffController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<StaffDto>>> GetStaff()
+        {
+            var staff = await _context.Staff
+                .AsNoTracking()
+                .Include(s => s.Employments)
+                .Include(s => s.Compensations)
+                .Include(s => s.BankAccounts)
+                .ToListAsync();
+
+            var staffDtos = new List<StaffDto>();
+
+            foreach (var s in staff)
+            {
+                var staffDto = MapToDto(s);
+                staffDtos.Add(staffDto);
+            }
+
+            return Ok(staffDtos);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<StaffDto>> GetStaff(Guid id)
+        {
+            var staff = await _context.Staff
+                .AsNoTracking()
+                .Include(s => s.Employments)
+                .Include(s => s.Compensations)
+                .Include(s => s.BankAccounts)
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (staff == null)
+            {
+                return NotFound();
+            }
+
+            var staffDto = MapToDto(staff);
+            return Ok(staffDto);
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<StaffDto>> CreateStaff(CreateStaffDto staffDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var staff = new Staff
+            {
+                Id = Guid.NewGuid(),
+                NickName = staffDto.NickName,
+                FullName = staffDto.FullName,
+                PhoneNo = staffDto.PhoneNo,
+                Nationality = staffDto.Nationality,
+                HostelName = staffDto.HostelName,
+                HostelRoom = staffDto.HostelRoom,
+                Reference = staffDto.Reference,
+                Status = 1, // Set as active by default
+                CreatedAt = DateTime.UtcNow,
+                LastUpdated = DateTime.UtcNow
+            };
+
+            _context.Staff.Add(staff);
+            await _context.SaveChangesAsync();
+
+            var createdStaffDto = MapToDto(staff);
+            return CreatedAtAction(nameof(GetStaff), new { id = staff.Id }, createdStaffDto);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateStaff(Guid id, UpdateStaffDto staffDto)
+        {
+            var staff = await _context.Staff
+                .Include(s => s.Employments)
+                .Include(s => s.Compensations)
+                .Include(s => s.BankAccounts)
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (staff == null)
+            {
+                return NotFound();
+            }
+
+            // Update basic staff properties
+            staff.NickName = staffDto.NickName;
+            staff.FullName = staffDto.FullName;
+            staff.PhoneNo = staffDto.PhoneNo;
+            staff.Nationality = staffDto.Nationality;
+            staff.HostelName = staffDto.HostelName;
+            staff.HostelRoom = staffDto.HostelRoom;
+            staff.Reference = staffDto.Reference;
+            staff.Status = staffDto.Status;
+            staff.LastUpdated = DateTime.UtcNow;
+
+            // Update employment details if provided
+            if (staffDto.CheckIn.HasValue || staffDto.CheckOut.HasValue || !string.IsNullOrEmpty(staffDto.Outlet) || !string.IsNullOrEmpty(staffDto.Type))
+            {
+                var existingEmployment = staff.Employments?.FirstOrDefault();
+                if (existingEmployment == null)
+                {
+                    // Create new employment record
+                    var newEmployment = new StaffEmployment
+                    {
+                        Id = Guid.NewGuid(),
+                        StaffId = staff.Id,
+                        Outlet = staffDto.Outlet ?? "Default",
+                        Type = staffDto.Type ?? "Therapist",
+                        CheckIn = staffDto.CheckIn.HasValue ? DateOnly.FromDateTime(staffDto.CheckIn.Value) : null,
+                        CheckOut = staffDto.CheckOut.HasValue ? DateOnly.FromDateTime(staffDto.CheckOut.Value) : null
+                    };
+                    _ = _context.StaffEmployments.Add(newEmployment);
+                }
+                else
+                {
+                    // Update existing employment record
+                    existingEmployment.Outlet = !string.IsNullOrEmpty(staffDto.Outlet) ? staffDto.Outlet : existingEmployment.Outlet;
+                    existingEmployment.Type = !string.IsNullOrEmpty(staffDto.Type) ? staffDto.Type : existingEmployment.Type;
+                    existingEmployment.CheckIn = staffDto.CheckIn.HasValue ? DateOnly.FromDateTime(staffDto.CheckIn.Value) : existingEmployment.CheckIn;
+                    existingEmployment.CheckOut = staffDto.CheckOut.HasValue ? DateOnly.FromDateTime(staffDto.CheckOut.Value) : existingEmployment.CheckOut;
+                }
+            }
+
+            // Update compensation details if provided
+            if (staffDto.FootRatePerHour.HasValue || staffDto.BodyRatePerHour.HasValue ||
+                staffDto.CommissionBasePercentage.HasValue || staffDto.GuaranteeIncome.HasValue)
+            {
+                var existingCompensation = staff.Compensations?.FirstOrDefault();
+                if (existingCompensation == null)
+                {
+                    // Create new compensation record
+                    var newCompensation = new StaffCompensation
+                    {
+                        Id = Guid.NewGuid(),
+                        StaffId = staff.Id,
+                        FootRatePerHour = staffDto.FootRatePerHour ?? 0,
+                        BodyRatePerHour = staffDto.BodyRatePerHour ?? 0,
+                        CommissionBasePercentage = staffDto.CommissionBasePercentage ?? 0,
+                        GuaranteeIncome = staffDto.GuaranteeIncome ?? 0
+                    };
+                    _ = _context.StaffCompensations.Add(newCompensation);
+                }
+                else
+                {
+                    // Update existing compensation record
+                    existingCompensation.FootRatePerHour = staffDto.FootRatePerHour ?? existingCompensation.FootRatePerHour;
+                    existingCompensation.BodyRatePerHour = staffDto.BodyRatePerHour ?? existingCompensation.BodyRatePerHour;
+                    existingCompensation.CommissionBasePercentage = staffDto.CommissionBasePercentage ?? existingCompensation.CommissionBasePercentage;
+                    existingCompensation.GuaranteeIncome = staffDto.GuaranteeIncome ?? existingCompensation.GuaranteeIncome;
+                }
+            }
+
+            // Update bank account details if provided
+            if (!string.IsNullOrEmpty(staffDto.BankName) || !string.IsNullOrEmpty(staffDto.AccountHolderName) ||
+                !string.IsNullOrEmpty(staffDto.AccountNumber))
+            {
+                var existingBankAccount = staff.BankAccounts?.FirstOrDefault();
+                if (existingBankAccount == null)
+                {
+                    // Create new bank account record
+                    var newBankAccount = new BankAccount
+                    {
+                        Id = Guid.NewGuid(),
+                        StaffId = staff.Id,
+                        BankName = staffDto.BankName ?? "",
+                        AccountHolderName = staffDto.AccountHolderName ?? "",
+                        AccountNumber = staffDto.AccountNumber ?? ""
+                    };
+                    _ = _context.BankAccounts.Add(newBankAccount);
+                }
+                else
+                {
+                    // Update existing bank account record
+                    existingBankAccount.BankName = staffDto.BankName ?? existingBankAccount.BankName;
+                    existingBankAccount.AccountHolderName = staffDto.AccountHolderName ?? existingBankAccount.AccountHolderName;
+                    existingBankAccount.AccountNumber = staffDto.AccountNumber ?? existingBankAccount.AccountNumber;
+                }
+            }
+
+            _context.Staff.Update(staff);
+            await _context.SaveChangesAsync();
+
+            return Ok(MapToDto(staff));
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteStaff(Guid id)
+        {
+            var staff = await _context.Staff.FindAsync(id);
+            if (staff == null)
+            {
+                return NotFound();
+            }
+
+            // Instead of hard delete, we'll mark as inactive (status = 0)
+            staff.Status = 0; // Inactive
+            staff.LastUpdated = DateTime.UtcNow;
+
+            _context.Staff.Update(staff);
+            await _context.SaveChangesAsync();
+
+            return Ok();
+        }
+
+        [HttpGet("paginated")]
+        public async Task<ActionResult<PaginatedResponse<StaffDto>>> GetStaffPaginated(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? sortField = null,
+            [FromQuery] string? sortDirection = null,
+            [FromQuery] string? searchTerm = null)
+        {
+            // Validate pagination parameters
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
+
+            // Build the base query using the DbContext WITH INCLUDES for related entities
+            IQueryable<Staff> query = _context.Staff
+                .AsNoTracking()
+                .Include(s => s.Employments)
+                .Include(s => s.Compensations)
+                .Include(s => s.BankAccounts);
+
+            // Apply search filter
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                query = query.Where(s =>
+                    EF.Functions.Like(s.FullName, $"%{searchTerm}%") ||
+                    EF.Functions.Like(s.NickName, $"%{searchTerm}%") ||
+                    EF.Functions.Like(s.PhoneNo, $"%{searchTerm}%") ||
+                    EF.Functions.Like(s.Nationality, $"%{searchTerm}%")
+                );
+            }
+
+            // Determine the order to apply (before pagination)
+            IOrderedQueryable<Staff> orderedQuery = query switch
+            {
+                _ when sortField?.ToLower() == "fullname" => sortDirection?.ToLower() == "desc"
+                    ? query.OrderByDescending(s => s.FullName)
+                    : query.OrderBy(s => s.FullName),
+                _ when sortField?.ToLower() == "nickname" => sortDirection?.ToLower() == "desc"
+                    ? query.OrderByDescending(s => s.NickName ?? "")
+                    : query.OrderBy(s => s.NickName ?? ""),
+                _ when sortField?.ToLower() == "phonenumber" => sortDirection?.ToLower() == "desc"
+                    ? query.OrderByDescending(s => s.PhoneNo ?? "")
+                    : query.OrderBy(s => s.PhoneNo ?? ""),
+                _ when sortField?.ToLower() == "nationality" => sortDirection?.ToLower() == "desc"
+                    ? query.OrderByDescending(s => s.Nationality ?? "")
+                    : query.OrderBy(s => s.Nationality ?? ""),
+                _ when sortField?.ToLower() == "status" => sortDirection?.ToLower() == "desc"
+                    ? query.OrderByDescending(s => s.Status)
+                    : query.OrderBy(s => s.Status),
+                _ => query.OrderBy(s => s.FullName) // Default sort
+            };
+
+            // Get total count of matching records before pagination
+            var totalCount = await orderedQuery.CountAsync();
+
+            // Apply pagination (Skip and Take)
+            var pagedStaff = await orderedQuery
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // Convert to DTOs
+            var staffDtos = new List<StaffDto>();
+            foreach (var s in pagedStaff)
+            {
+                var staffDto = MapToDto(s);
+                staffDtos.Add(staffDto);
+            }
+
+            var response = new PaginatedResponse<StaffDto>
+            {
+                Data = staffDtos,
+                TotalCount = totalCount,
+                PageSize = pageSize,
+                CurrentPage = page
+            };
+
+            return Ok(response);
+        }
+
+        private StaffDto MapToDto(Staff staff)
+        {
+            var staffDto = new StaffDto
+            {
+                Id = staff.Id,
+                NickName = staff.NickName,
+                FullName = staff.FullName,
+                PhoneNo = staff.PhoneNo,
+                Nationality = staff.Nationality,
+                HostelName = staff.HostelName,
+                HostelRoom = staff.HostelRoom,
+                Reference = staff.Reference,
+                Status = staff.Status,
+                CreatedBy = staff.CreatedBy,
+                CreatedAt = staff.CreatedAt,
+                LastUpdated = staff.LastUpdated,
+                LastModifiedBy = staff.LastModifiedBy
+            };
+
+            // Add employment details if they exist
+            if (staff.Employments != null && staff.Employments.Any())
+            {
+                var employment = staff.Employments.First(); // Get the first employment record
+                staffDto.Outlet = employment.Outlet;
+                staffDto.Type = employment.Type;
+                staffDto.CheckIn = employment.CheckIn?.ToDateTime(TimeOnly.MinValue);
+                staffDto.CheckOut = employment.CheckOut?.ToDateTime(TimeOnly.MinValue);
+            }
+
+            // Add compensation details if they exist
+            if (staff.Compensations != null && staff.Compensations.Any())
+            {
+                var compensation = staff.Compensations.First(); // Get the first compensation record
+                staffDto.FootRatePerHour = compensation.FootRatePerHour;
+                staffDto.BodyRatePerHour = compensation.BodyRatePerHour;
+                staffDto.CommissionBasePercentage = compensation.CommissionBasePercentage;
+                staffDto.GuaranteeIncome = compensation.GuaranteeIncome;
+            }
+
+            // Add bank account details if they exist
+            if (staff.BankAccounts != null && staff.BankAccounts.Any())
+            {
+                var bankAccount = staff.BankAccounts.First(); // Get the first bank account record
+                staffDto.BankName = bankAccount.BankName;
+                staffDto.AccountHolderName = bankAccount.AccountHolderName;
+                staffDto.AccountNumber = bankAccount.AccountNumber;
+            }
+
+            return staffDto;
+        }
+    }
+}

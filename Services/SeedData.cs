@@ -97,6 +97,7 @@ namespace QwenHT.Services
             Guid UserGuid = Guid.NewGuid();
             Guid LandingGuid = Guid.NewGuid();
             Guid NaviGuid = Guid.NewGuid();
+            Guid StaffGuid = Guid.NewGuid();
 
             // Seed navigation items if they don't exist
             if (!context.NavigationItems.AsNoTracking().Any())
@@ -168,10 +169,20 @@ namespace QwenHT.Services
                     new NavigationItem
                     {
                         Id = NaviGuid,
-                        Name = "User Management",
+                        Name = "Navigation Management",
                         Route = "/app/manage/navigation",
-                        Icon = "pi pi-fw pi-user",
-                        Order = 2,
+                        Icon = "pi pi-fw pi-sitemap",
+                        Order = 3,
+                        IsVisible = true,
+                        ParentId = ManageGuid // Manage
+                    },
+                    new NavigationItem
+                    {
+                        Id = StaffGuid,
+                        Name = "Staff Management",
+                        Route = "/app/manage/staff",
+                        Icon = "pi pi-fw pi-users",
+                        Order = 4,
                         IsVisible = true,
                         ParentId = ManageGuid // Manage
                     },
@@ -232,11 +243,6 @@ namespace QwenHT.Services
                         RoleName = roleName,
                         NavigationItemId = UserGuid // User Management
                     });
-                    context.RoleNavigations.Add(new RoleNavigation
-                    {
-                        RoleName = roleName,
-                        NavigationItemId = NaviGuid // User Management
-                    });
                 }
                 await context.SaveChangesAsync();
 
@@ -247,6 +253,28 @@ namespace QwenHT.Services
                     {
                         RoleName = roleName,
                         NavigationItemId = LandingGuid // Landing
+                    });
+                }
+                await context.SaveChangesAsync();
+
+                // Navigation Management - available to Admin (Child item - item ID 6)
+                foreach (var roleName in new[] { "Admin" })
+                {
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = NaviGuid // Navigation Management
+                    });
+                }
+                await context.SaveChangesAsync();
+
+                // Staff Management - available to Admin and Supervisor (Child item - item ID 7)
+                foreach (var roleName in new[] { "Admin", "Supervisor" })
+                {
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = StaffGuid // Staff Management
                     });
                 }
                 await context.SaveChangesAsync();
