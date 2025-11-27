@@ -62,6 +62,7 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddScoped<INavigationService, NavigationService>();
+builder.Services.AddScoped<IOptionValueService, OptionValueService>();
 
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(options =>

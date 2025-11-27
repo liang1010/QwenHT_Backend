@@ -279,6 +279,63 @@ namespace QwenHT.Services
                 }
                 await context.SaveChangesAsync();
             }
+
+            // Seed option values if they don't exist
+            if (!context.OptionValues.AsNoTracking().Any())
+            {
+                var optionValues = new List<OptionValue>
+                {
+                    // Nationalities
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Nationality", Value = "MALAYSIA", Description = "Malaysian nationality", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Nationality", Value = "INDONESIA", Description = "Indonesian nationality", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Nationality", Value = "THAILAND", Description = "Thai nationality", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Nationality", Value = "VIETNAM", Description = "Vietnamese nationality", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Nationality", Value = "PHILIPPINES", Description = "Filipino nationality", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Nationality", Value = "CHINA", Description = "Chinese nationality", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Nationality", Value = "INDIA", Description = "Indian nationality", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+
+                    // Outlet Names
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Outlet", Value = "RIA SELANGOR", Description = "RIA Selangor outlet", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Outlet", Value = "RIA PAHANG", Description = "RIA Pahang outlet", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Outlet", Value = "KAYANGAN", Description = "Kayangan outlet", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Outlet", Value = "RIA KUALA LUMPUR", Description = "RIA Kuala Lumpur outlet", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Outlet", Value = "RIA JOHOR", Description = "RIA Johor outlet", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Outlet", Value = "RIA PENANG", Description = "RIA Penang outlet", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+
+                    // Staff Types
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Type", Value = "Therapist", Description = "Therapist staff type", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Type", Value = "Consultant", Description = "Consultant staff type", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Type", Value = "Manager", Description = "Manager staff type", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Type", Value = "Receptionist", Description = "Receptionist staff type", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Type", Value = "Assistant", Description = "Assistant staff type", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+
+                    // Hostel Names
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Hostel", Value = "RIA SELANGOR", Description = "RIA Selangor hostel", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Hostel", Value = "RIA PAHANG", Description = "RIA Pahang hostel", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Hostel", Value = "KAYANGAN", Description = "Kayangan hostel", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Hostel", Value = "--NO HOSTEL NAME--", Description = "No hostel assigned", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+
+                    // Bank Names
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "Maybank", Description = "Maybank", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "CIMB", Description = "CIMB Bank", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "Public Bank", Description = "Public Bank", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "RHB Bank", Description = "RHB Bank", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "Hong Leong Bank", Description = "Hong Leong Bank", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "Bank Rakyat", Description = "Bank Rakyat", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "AmBank", Description = "AmBank", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "UOB", Description = "United Overseas Bank", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "HSBC", Description = "Hongkong and Shanghai Banking Corporation", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "OCBC", Description = "Oversea-Chinese Banking Corporation", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow }
+                };
+
+                foreach (var optionValue in optionValues)
+                {
+                    context.OptionValues.Add(optionValue);
+                }
+
+                await context.SaveChangesAsync();
+            }
         }
+        
     }
 }
