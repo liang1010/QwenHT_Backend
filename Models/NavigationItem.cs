@@ -4,7 +4,7 @@ namespace QwenHT.Models
 {
     public class NavigationItem
     {
-        public Guid? Id { get; set; }
+        public Guid Id { get; set; }
 
         [Required]
         [MaxLength(100)]
@@ -27,6 +27,14 @@ namespace QwenHT.Models
         public int Order { get; set; } = 0;
 
         public bool IsVisible { get; set; } = true;
+
+
+        [MaxLength(100)]
+        public string? CreatedBy { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+        public string? LastModifiedBy { get; set; }
+
         public ICollection<RoleNavigation> RoleNavigations { get; set; } = new List<RoleNavigation>();
     }
 }

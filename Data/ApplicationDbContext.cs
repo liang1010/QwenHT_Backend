@@ -43,6 +43,11 @@ namespace QwenHT.Data
                 entity.Property(e => e.Route).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Icon).HasMaxLength(200);
 
+                // Configure timestamp and modifier fields
+                entity.Property(e => e.CreatedBy).HasDefaultValue("Migration");
+                entity.Property(e => e.CreatedAt).HasDefaultValue(DateTime.UtcNow);
+                entity.Property(e => e.LastUpdated).HasDefaultValue(DateTime.UtcNow);
+
                 // Configure the self-referencing relationship
                 entity.HasOne(n => n.Parent)
                       .WithMany(n => n.Children)
@@ -62,7 +67,6 @@ namespace QwenHT.Data
                       .HasForeignKey(rn => rn.NavigationItemId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
-
 
             // Staff
             builder.Entity<Staff>(entity =>
@@ -112,6 +116,10 @@ namespace QwenHT.Data
                 entity.Property(e => e.Category).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Value).IsRequired().HasMaxLength(255);
                 entity.Property(e => e.Description).HasMaxLength(500);
+                entity.Property(e => e.CreatedBy).HasDefaultValue("Migration");
+                entity.Property(e => e.CreatedAt).HasDefaultValue(DateTime.UtcNow);
+                entity.Property(e => e.LastUpdated).HasDefaultValue(DateTime.UtcNow);
+
                 entity.HasIndex(e => new { e.Category, e.Value }).IsUnique(); // Prevent duplicate values in same category
             });
         }

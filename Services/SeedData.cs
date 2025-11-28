@@ -99,6 +99,7 @@ namespace QwenHT.Services
             Guid NaviGuid = Guid.NewGuid();
             Guid StaffGuid = Guid.NewGuid();
             Guid OptionValueGuid = Guid.NewGuid();
+            Guid RoleGuid = Guid.NewGuid();
 
             // Seed navigation items if they don't exist
             if (!context.NavigationItems.AsNoTracking().Any())
@@ -153,7 +154,7 @@ namespace QwenHT.Services
                         Name = "User Management",
                         Route = "/app/manage/user",
                         Icon = "pi pi-fw pi-user",
-                        Order = 2,
+                        Order = 1,
                         IsVisible = true,
                         ParentId = ManageGuid // Manage
                     },
@@ -173,7 +174,7 @@ namespace QwenHT.Services
                         Name = "Navigation Management",
                         Route = "/app/manage/navigation",
                         Icon = "pi pi-fw pi-sitemap",
-                        Order = 3,
+                        Order = 4,
                         IsVisible = true,
                         ParentId = ManageGuid // Manage
                     },
@@ -183,7 +184,7 @@ namespace QwenHT.Services
                         Name = "Staff Management",
                         Route = "/app/manage/staff",
                         Icon = "pi pi-fw pi-users",
-                        Order = 4,
+                        Order = 2,
                         IsVisible = true,
                         ParentId = ManageGuid // Manage
                     },
@@ -193,6 +194,16 @@ namespace QwenHT.Services
                         Name = "Option Values",
                         Route = "/app/manage/option-values",
                         Icon = "pi pi-fw pi-sliders-v", // Using sliders icon for option values
+                        Order = 5,
+                        IsVisible = true,
+                        ParentId = ManageGuid // Manage
+                    },
+                    new NavigationItem
+                    {
+                        Id = RoleGuid,
+                        Name = "Role Management",
+                        Route = "/app/manage/role",
+                        Icon = "pi pi-fw pi-shief", // Using sliders icon for option values
                         Order = 5,
                         IsVisible = true,
                         ParentId = ManageGuid // Manage
@@ -211,95 +222,70 @@ namespace QwenHT.Services
             if (!context.RoleNavigations.AsNoTracking().Any())
             {
                 // Assign navigation items to roles
-                var allRoles = new[] { "Admin", "Supervisor", "User", "Guest" };
+                var allRoles = new[] { "Admin" };
 
                 // Home - available to all (Parent item - item ID 1)
                 foreach (var roleName in allRoles)
                 {
+
+
+                    //Guid HomeGuid = Guid.NewGuid();
+                    //Guid ManageGuid = Guid.NewGuid();
+                    //Guid DashboardGuid = Guid.NewGuid();
+                    //Guid UserGuid = Guid.NewGuid();
+                    //Guid LandingGuid = Guid.NewGuid();
+                    //Guid NaviGuid = Guid.NewGuid();
+                    //Guid StaffGuid = Guid.NewGuid();
+                    //Guid OptionValueGuid = Guid.NewGuid();
+                    //Guid RoleGuid = Guid.NewGuid();
                     context.RoleNavigations.Add(new RoleNavigation
                     {
                         RoleName = roleName,
                         NavigationItemId = HomeGuid // Home
                     });
-                }
-                await context.SaveChangesAsync();
-
-                // Manage - available to all (Parent item - item ID 2)
-                foreach (var roleName in allRoles)
-                {
                     context.RoleNavigations.Add(new RoleNavigation
                     {
                         RoleName = roleName,
-                        NavigationItemId = ManageGuid // Manage
+                        NavigationItemId = ManageGuid // Home
+                    });
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = DashboardGuid // Home
+                    });
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = UserGuid // Home
+                    });
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = LandingGuid // Home
+                    });
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = NaviGuid // Home
+                    });
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = StaffGuid // Home
+                    });
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = OptionValueGuid // Home
+                    });
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = RoleGuid // Home
                     });
                 }
                 await context.SaveChangesAsync();
 
-                // Dashboard - available to all (Child item - item ID 3)
-                foreach (var roleName in allRoles)
-                {
-                    context.RoleNavigations.Add(new RoleNavigation
-                    {
-                        RoleName = roleName,
-                        NavigationItemId = DashboardGuid // Dashboard
-                    });
-                }
-                await context.SaveChangesAsync();
-
-                // User Management - available to Admin and Supervisor (Child item - item ID 4)
-                foreach (var roleName in new[] { "Admin", "Supervisor" })
-                {
-                    context.RoleNavigations.Add(new RoleNavigation
-                    {
-                        RoleName = roleName,
-                        NavigationItemId = UserGuid // User Management
-                    });
-                }
-                await context.SaveChangesAsync();
-
-                // Landing - available to all (Child item - item ID 5)
-                foreach (var roleName in allRoles)
-                {
-                    context.RoleNavigations.Add(new RoleNavigation
-                    {
-                        RoleName = roleName,
-                        NavigationItemId = LandingGuid // Landing
-                    });
-                }
-                await context.SaveChangesAsync();
-
-                // Navigation Management - available to Admin (Child item - item ID 6)
-                foreach (var roleName in new[] { "Admin" })
-                {
-                    context.RoleNavigations.Add(new RoleNavigation
-                    {
-                        RoleName = roleName,
-                        NavigationItemId = NaviGuid // Navigation Management
-                    });
-                }
-                await context.SaveChangesAsync();
-
-                // Staff Management - available to Admin and Supervisor (Child item - item ID 7)
-                foreach (var roleName in new[] { "Admin", "Supervisor" })
-                {
-                    context.RoleNavigations.Add(new RoleNavigation
-                    {
-                        RoleName = roleName,
-                        NavigationItemId = StaffGuid // Staff Management
-                    });
-                }
-                await context.SaveChangesAsync();
-
-                // Option Values - available to Admin (Child item - item ID 8)
-                foreach (var roleName in new[] { "Admin" })
-                {
-                    context.RoleNavigations.Add(new RoleNavigation
-                    {
-                        RoleName = roleName,
-                        NavigationItemId = OptionValueGuid // Option Values
-                    });
-                }
-                await context.SaveChangesAsync();
             }
 
             // Seed option values if they don't exist
@@ -307,39 +293,39 @@ namespace QwenHT.Services
             {
                 var optionValues = new List<OptionValue>
                 {
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Hostel", Value = "RIA SELANGOR", Description = "RIA Selangor hostel", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Hostel", Value = "RIA PAHANG", Description = "RIA Pahang hostel", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Hostel", Value = "KAYANGAN", Description = "Kayangan hostel", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Hostel", Value = "--NO HOSTEL NAME--", Description = "No hostel assigned", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Hostel", Value = "RIA SELANGOR", Description = "RIA Selangor hostel", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Hostel", Value = "RIA PAHANG", Description = "RIA Pahang hostel", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Hostel", Value = "KAYANGAN", Description = "Kayangan hostel", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Hostel", Value = "--NO HOSTEL NAME--", Description = "No hostel assigned", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
 
                     // Bank Names
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "CIMB", Description = "CIMB Bank", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "HLB", Description = "HLB Bank", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "MAYBANK - PETTY CASH", Description = "Maybank - Petty Cash", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "MAYBANK OWN", Description = "Maybank Own", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "--NO--", Description = "No bank account", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "PUBLIC BANK OWN", Description = "Public Bank Own", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "RHB", Description = "RHB Bank", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "TOUCH N GO", Description = "Touch n Go eWallet", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "CIMB", Description = "CIMB Bank", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "HLB", Description = "HLB Bank", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "MAYBANK - PETTY CASH", Description = "Maybank - Petty Cash", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "MAYBANK OWN", Description = "Maybank Own", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "--NO--", Description = "No bank account", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "PUBLIC BANK OWN", Description = "Public Bank Own", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "RHB", Description = "RHB Bank", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Bank", Value = "TOUCH N GO", Description = "Touch n Go eWallet", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
 
                     // Outlet Names
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Outlet", Value = "ALL", Description = "All outlets", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Outlet", Value = "HTA", Description = "HTA outlet", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Outlet", Value = "HTG", Description = "HTG outlet", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Outlet", Value = "HTL", Description = "HTL outlet", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Outlet", Value = "HTSA", Description = "HTSA outlet", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Outlet", Value = "ALL", Description = "All outlets", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Outlet", Value = "HTA", Description = "HTA outlet", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Outlet", Value = "HTG", Description = "HTG outlet", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Outlet", Value = "HTL", Description = "HTL outlet", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Outlet", Value = "HTSA", Description = "HTSA outlet", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
 
                     // Nationalities
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Nationality", Value = "CHINA", Description = "Chinese nationality", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Nationality", Value = "INDONESIA", Description = "Indonesian nationality", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Nationality", Value = "MALAYSIA", Description = "Malaysian nationality", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Nationality", Value = "MYANMAR UN", Description = "Myanmar UN", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Nationality", Value = "OWN PERMIT", Description = "Own Permit", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Nationality", Value = "THAILAND", Description = "Thai nationality", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Nationality", Value = "CHINA", Description = "Chinese nationality", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Nationality", Value = "INDONESIA", Description = "Indonesian nationality", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Nationality", Value = "MALAYSIA", Description = "Malaysian nationality", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Nationality", Value = "MYANMAR UN", Description = "Myanmar UN", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Nationality", Value = "OWN PERMIT", Description = "Own Permit", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Nationality", Value = "THAILAND", Description = "Thai nationality", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
 
                     // Staff Types
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Type", Value = "FULLTIME", Description = "Fulltime staff type", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow },
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Type", Value = "THERAPIST", Description = "Therapist staff type", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow }
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Type", Value = "FULLTIME", Description = "Fulltime staff type", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Type", Value = "THERAPIST", Description = "Therapist staff type", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" }
                 };
 
                 foreach (var optionValue in optionValues)

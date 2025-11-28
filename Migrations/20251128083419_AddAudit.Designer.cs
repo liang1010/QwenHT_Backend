@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using QwenHT.Data;
 
@@ -11,9 +12,11 @@ using QwenHT.Data;
 namespace QwenHT.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251128083419_AddAudit")]
+    partial class AddAudit
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -278,13 +281,7 @@ namespace QwenHT.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValue(new DateTime(2025, 11, 28, 8, 43, 41, 457, DateTimeKind.Utc).AddTicks(123));
-
-                    b.Property<string>("CreatedBy")
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasDefaultValue("Migration");
+                        .HasDefaultValue(new DateTime(2025, 11, 28, 8, 34, 16, 91, DateTimeKind.Utc).AddTicks(978));
 
                     b.Property<string>("Icon")
                         .HasMaxLength(200)
@@ -299,7 +296,7 @@ namespace QwenHT.Migrations
                     b.Property<DateTime>("LastUpdated")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValue(new DateTime(2025, 11, 28, 8, 43, 41, 457, DateTimeKind.Utc).AddTicks(318));
+                        .HasDefaultValue(new DateTime(2025, 11, 28, 8, 34, 16, 91, DateTimeKind.Utc).AddTicks(1218));
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -337,13 +334,7 @@ namespace QwenHT.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValue(new DateTime(2025, 11, 28, 8, 43, 41, 457, DateTimeKind.Utc).AddTicks(5258));
-
-                    b.Property<string>("CreatedBy")
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasDefaultValue("Migration");
+                        .HasDefaultValue(new DateTime(2025, 11, 28, 8, 34, 16, 91, DateTimeKind.Utc).AddTicks(3223));
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
@@ -358,7 +349,7 @@ namespace QwenHT.Migrations
                     b.Property<DateTime>("LastUpdated")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValue(new DateTime(2025, 11, 28, 8, 43, 41, 457, DateTimeKind.Utc).AddTicks(5438));
+                        .HasDefaultValue(new DateTime(2025, 11, 28, 8, 34, 16, 91, DateTimeKind.Utc).AddTicks(3409));
 
                     b.Property<string>("Value")
                         .IsRequired()

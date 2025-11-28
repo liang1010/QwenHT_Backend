@@ -96,6 +96,8 @@ namespace QwenHT.Services.Navigation
             existingItem.ParentId = item.ParentId;
             existingItem.Order = item.Order;
             existingItem.IsVisible = item.IsVisible;
+            existingItem.LastUpdated = item.LastUpdated;
+            existingItem.LastModifiedBy = item.LastModifiedBy;
 
             await _context.SaveChangesAsync();
             return existingItem;

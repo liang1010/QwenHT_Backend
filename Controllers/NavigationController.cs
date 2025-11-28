@@ -61,6 +61,21 @@ namespace QwenHT.Controllers
         [HttpPost]
         public async Task<ActionResult<NavigationItem>> CreateNavigationItem([FromBody] NavigationItem item)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            // Get current user from JWT claims
+            var username = User?.Claims?.FirstOrDefault(c => c.Type == "username")?.Value ?? "Unknown";
+
+            // Set audit fields
+            item.Id = Guid.NewGuid();
+            item.CreatedBy = username;
+            item.CreatedAt = DateTime.UtcNow;
+            item.LastUpdated = DateTime.UtcNow;
+            item.LastModifiedBy = username;
+
             var createdItem = await _navigationService.CreateNavigationItemAsync(item);
             return CreatedAtAction(nameof(GetNavigationItem), new { id = createdItem.Id }, createdItem);
         }
@@ -68,6 +83,24 @@ namespace QwenHT.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateNavigationItem(Guid id, [FromBody] NavigationItem item)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            // Verify the ID in the URL matches the ID in the item
+            if (id != item.Id)
+            {
+                return BadRequest("Navigation item ID mismatch");
+            }
+
+            // Get current user from JWT claims
+            var username = User?.Claims?.FirstOrDefault(c => c.Type == "username")?.Value ?? "Unknown";
+
+            // Set audit fields for update
+            item.LastUpdated = DateTime.UtcNow;
+            item.LastModifiedBy = username;
+
             var updatedItem = await _navigationService.UpdateNavigationItemAsync(id, item);
             if (updatedItem == null)
             {

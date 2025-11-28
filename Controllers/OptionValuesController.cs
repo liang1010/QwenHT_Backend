@@ -62,9 +62,12 @@ namespace QwenHT.Controllers
                 return BadRequest(ModelState);
             }
 
+            // Get current user from JWT claims
+            var username = User?.Claims?.FirstOrDefault(c => c.Type == "username")?.Value ?? "Unknown";
+
             // Check if an option value with the same category and value already exists
             var existingOptionValue = await _context.OptionValues
-                .FirstOrDefaultAsync(ov => ov.Category.ToLower() == optionValue.Category.ToLower() 
+                .FirstOrDefaultAsync(ov => ov.Category.ToLower() == optionValue.Category.ToLower()
                                         && ov.Value.ToLower() == optionValue.Value.ToLower());
 
             if (existingOptionValue != null)
@@ -73,8 +76,10 @@ namespace QwenHT.Controllers
             }
 
             optionValue.Id = Guid.NewGuid();
+            optionValue.CreatedBy = username;
             optionValue.CreatedAt = DateTime.UtcNow;
             optionValue.LastUpdated = DateTime.UtcNow;
+            optionValue.LastModifiedBy = username; // Set the modifier from JWT claim
             optionValue.IsActive = true; // Default to active
 
             _context.OptionValues.Add(optionValue);
@@ -98,10 +103,13 @@ namespace QwenHT.Controllers
                 return NotFound();
             }
 
+            // Get current user from JWT claims
+            var username = User?.Claims?.FirstOrDefault(c => c.Type == "username")?.Value ?? "Unknown";
+
             // Check if an option value with the same category and value already exists (excluding this one)
             var duplicateOptionValue = await _context.OptionValues
-                .FirstOrDefaultAsync(ov => ov.Id != id 
-                                        && ov.Category.ToLower() == optionValue.Category.ToLower() 
+                .FirstOrDefaultAsync(ov => ov.Id != id
+                                        && ov.Category.ToLower() == optionValue.Category.ToLower()
                                         && ov.Value.ToLower() == optionValue.Value.ToLower());
 
             if (duplicateOptionValue != null)
@@ -114,6 +122,7 @@ namespace QwenHT.Controllers
             existingOptionValue.Description = optionValue.Description;
             existingOptionValue.IsActive = optionValue.IsActive;
             existingOptionValue.LastUpdated = DateTime.UtcNow;
+            existingOptionValue.LastModifiedBy = username; // Set the modifier from JWT claim
 
             _context.OptionValues.Update(existingOptionValue);
             await _context.SaveChangesAsync();
@@ -131,9 +140,14 @@ namespace QwenHT.Controllers
                 return NotFound();
             }
 
+            // Get current user from JWT claims
+            var username = User?.Claims?.FirstOrDefault(c => c.Type == "username")?.Value ?? "Unknown";
+
             // Soft delete - set IsActive to false instead of removing from DB
             optionValue.IsActive = false;
             optionValue.LastUpdated = DateTime.UtcNow;
+            optionValue.LastModifiedBy = username; // Set the modifier from JWT claim
+
             _context.OptionValues.Update(optionValue);
             await _context.SaveChangesAsync();
 

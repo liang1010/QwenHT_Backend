@@ -17,8 +17,13 @@ namespace QwenHT.Models
 
         public bool IsActive { get; set; } = true;
 
+        [MaxLength(100)]
+        public string? CreatedBy { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+
+        public string? LastModifiedBy { get; set; }
     }
 }
