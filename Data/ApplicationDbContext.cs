@@ -19,6 +19,7 @@ namespace QwenHT.Data
         public DbSet<StaffCompensation> StaffCompensations { get; set; }
         public DbSet<BankAccount> BankAccounts { get; set; }
         public DbSet<OptionValue> OptionValues { get; set; }
+        public DbSet<Menu> Menus { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -121,6 +122,20 @@ namespace QwenHT.Data
                 entity.Property(e => e.LastUpdated).HasDefaultValue(DateTime.UtcNow);
 
                 entity.HasIndex(e => new { e.Category, e.Value }).IsUnique(); // Prevent duplicate values in same category
+            });
+
+            // Menu
+            builder.Entity<Menu>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                // Optional: Add index for common queries
+                entity.HasIndex(e => e.Category);
+                entity.HasIndex(e => e.Code).IsUnique();
+                entity.HasIndex(e => e.Status);
+
+                // Ensure Category is only PRODUCT or TREATMENT (optional, enforced in app layer)
+                // EF Core doesn't support CHECK constraints via attributes (use Fluent API if needed)
             });
         }
     }
