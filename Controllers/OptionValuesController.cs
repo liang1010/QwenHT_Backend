@@ -17,32 +17,23 @@ namespace QwenHT.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<OptionValue>>> GetOptionValues(
-            [FromQuery] string? category = null,
-            [FromQuery] string? searchTerm = null,
-            [FromQuery] bool includeInactive = false)
+        public async Task<ActionResult<IEnumerable<OptionValue>>> GetOptionValues([FromQuery] string? category = null)
         {
             var query = _context.OptionValues.AsQueryable();
 
+            // Apply category filter if provided
             if (!string.IsNullOrEmpty(category))
             {
-                query = query.Where(o => o.Category.ToLower() == category.ToLower());
+                query = query.Where(ov => ov.Category!.ToLower() == category.ToLower());
             }
 
-            if (!string.IsNullOrEmpty(searchTerm))
-            {
-                query = query.Where(o => EF.Functions.Like(o.Value, $"%{searchTerm}%") || 
-                                         EF.Functions.Like(o.Description, $"%{searchTerm}%"));
-            }
+            // Apply active filter
+            query = query.Where(ov => ov.IsActive);
 
-            if (!includeInactive)
-            {
-                query = query.Where(o => o.IsActive);
-            }
-
+            // Order by category and value
             var optionValues = await query
-                .OrderBy(o => o.Category)
-                .ThenBy(o => o.Value)
+                .OrderBy(ov => ov.Category)
+                .ThenBy(ov => ov.Value)
                 .ToListAsync();
 
             return Ok(optionValues);
@@ -53,12 +44,12 @@ namespace QwenHT.Controllers
         {
             var optionValue = await _context.OptionValues.FindAsync(id);
 
-            if (optionValue == null)
+            if (optionValue == null || !optionValue.IsActive)
             {
                 return NotFound();
             }
 
-            return Ok(optionValue);
+            return optionValue;
         }
 
         [HttpPost]
@@ -69,19 +60,20 @@ namespace QwenHT.Controllers
                 return BadRequest(ModelState);
             }
 
-            // Check if this combination of category and value already exists
-            var existing = await _context.OptionValues
-                .FirstOrDefaultAsync(o => o.Category.ToLower() == optionValue.Category.ToLower() 
-                                       && o.Value.ToLower() == optionValue.Value.ToLower());
-            
-            if (existing != null)
+            // Check if an option value with the same category and value already exists
+            var existingOptionValue = await _context.OptionValues
+                .FirstOrDefaultAsync(ov => ov.Category.ToLower() == optionValue.Category.ToLower() 
+                                        && ov.Value.ToLower() == optionValue.Value.ToLower());
+
+            if (existingOptionValue != null)
             {
-                return BadRequest("A value with this category and value already exists.");
+                return BadRequest("An option value with the same category and value already exists.");
             }
 
             optionValue.Id = Guid.NewGuid();
             optionValue.CreatedAt = DateTime.UtcNow;
             optionValue.LastUpdated = DateTime.UtcNow;
+            optionValue.IsActive = true; // Default to active
 
             _context.OptionValues.Add(optionValue);
             await _context.SaveChangesAsync();
@@ -104,15 +96,15 @@ namespace QwenHT.Controllers
                 return NotFound();
             }
 
-            // Check if this combination of category and value already exists for another record
-            var duplicateCheck = await _context.OptionValues
-                .FirstOrDefaultAsync(o => o.Id != id 
-                                       && o.Category.ToLower() == optionValue.Category.ToLower() 
-                                       && o.Value.ToLower() == optionValue.Value.ToLower());
-            
-            if (duplicateCheck != null)
+            // Check if an option value with the same category and value already exists (excluding this one)
+            var duplicateOptionValue = await _context.OptionValues
+                .FirstOrDefaultAsync(ov => ov.Id != id 
+                                        && ov.Category.ToLower() == optionValue.Category.ToLower() 
+                                        && ov.Value.ToLower() == optionValue.Value.ToLower());
+
+            if (duplicateOptionValue != null)
             {
-                return BadRequest("A value with this category and value already exists.");
+                return BadRequest("An option value with the same category and value already exists.");
             }
 
             existingOptionValue.Category = optionValue.Category;
@@ -137,7 +129,10 @@ namespace QwenHT.Controllers
                 return NotFound();
             }
 
-            _context.OptionValues.Remove(optionValue);
+            // Soft delete - set IsActive to false instead of removing from DB
+            optionValue.IsActive = false;
+            optionValue.LastUpdated = DateTime.UtcNow;
+            _context.OptionValues.Update(optionValue);
             await _context.SaveChangesAsync();
 
             return NoContent();
@@ -147,13 +142,78 @@ namespace QwenHT.Controllers
         public async Task<ActionResult<IEnumerable<string>>> GetCategories()
         {
             var categories = await _context.OptionValues
-                .Where(o => o.IsActive)
-                .Select(o => o.Category)
+                .Where(ov => ov.IsActive)
+                .Select(ov => ov.Category)
                 .Distinct()
                 .OrderBy(c => c)
                 .ToListAsync();
 
             return Ok(categories);
+        }
+
+        [HttpGet("paginated")]
+        public async Task<ActionResult<PaginatedResponse<OptionValue>>> GetOptionValuesPaginated(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? sortField = null,
+            [FromQuery] string? sortDirection = null,
+            [FromQuery] string? searchTerm = null)
+        {
+            // Validate pagination parameters
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
+
+            // Build the base query
+            IQueryable<OptionValue> query = _context.OptionValues.AsNoTracking();
+
+            // Apply search filter if provided
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                query = query.Where(ov => 
+                    EF.Functions.Like(ov.Category, $"%{searchTerm}%") ||
+                    EF.Functions.Like(ov.Value, $"%{searchTerm}%") ||
+                    EF.Functions.Like(ov.Description, $"%{searchTerm}%"));
+            }
+
+            // Apply active filter only if not explicitly requesting inactive items
+            query = query.Where(ov => ov.IsActive);
+
+            // Determine the order to apply (before pagination)
+            IOrderedQueryable<OptionValue> orderedQuery = query switch
+            {
+                _ when sortField?.ToLower() == "category" => sortDirection?.ToLower() == "desc"
+                    ? query.OrderByDescending(ov => ov.Category ?? "")
+                    : query.OrderBy(ov => ov.Category ?? ""),
+                _ when sortField?.ToLower() == "value" => sortDirection?.ToLower() == "desc"
+                    ? query.OrderByDescending(ov => ov.Value ?? "")
+                    : query.OrderBy(ov => ov.Value ?? ""),
+                _ when sortField?.ToLower() == "description" => sortDirection?.ToLower() == "desc"
+                    ? query.OrderByDescending(ov => ov.Description ?? "")
+                    : query.OrderBy(ov => ov.Description ?? ""),
+                _ when sortField?.ToLower() == "isactive" => sortDirection?.ToLower() == "desc"
+                    ? query.OrderByDescending(ov => ov.IsActive)
+                    : query.OrderBy(ov => ov.IsActive),
+                _ => query.OrderBy(ov => ov.Category).ThenBy(ov => ov.Value) // Default sort
+            };
+
+            // Get total count of matching records before pagination
+            var totalCount = await orderedQuery.CountAsync();
+
+            // Apply pagination (Skip and Take)
+            var pagedOptionValues = await orderedQuery
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var response = new PaginatedResponse<OptionValue>
+            {
+                Data = pagedOptionValues,
+                TotalCount = totalCount,
+                PageSize = pageSize,
+                CurrentPage = page
+            };
+
+            return Ok(response);
         }
 
         [HttpGet("autocomplete")]
@@ -164,15 +224,15 @@ namespace QwenHT.Controllers
         {
             if (string.IsNullOrEmpty(category) || string.IsNullOrEmpty(searchTerm))
             {
-                return BadRequest("Category and searchTerm are required");
+                return BadRequest("Category and searchTerm are required.");
             }
 
             var options = await _context.OptionValues
-                .Where(o => o.Category.ToLower() == category.ToLower() 
-                         && o.IsActive
-                         && (EF.Functions.Like(o.Value, $"%{searchTerm}%") 
-                         || EF.Functions.Like(o.Description, $"%{searchTerm}%")))
-                .OrderBy(o => o.Value)
+                .Where(ov => ov.Category.ToLower() == category.ToLower() 
+                          && ov.IsActive
+                          && (EF.Functions.Like(ov.Value, $"%{searchTerm}%") 
+                          || EF.Functions.Like(ov.Description, $"%{searchTerm}%")))
+                .OrderBy(ov => ov.Value)
                 .Take(limit)
                 .ToListAsync();
 

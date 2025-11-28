@@ -98,6 +98,7 @@ namespace QwenHT.Services
             Guid LandingGuid = Guid.NewGuid();
             Guid NaviGuid = Guid.NewGuid();
             Guid StaffGuid = Guid.NewGuid();
+            Guid OptionValueGuid = Guid.NewGuid();
 
             // Seed navigation items if they don't exist
             if (!context.NavigationItems.AsNoTracking().Any())
@@ -183,6 +184,16 @@ namespace QwenHT.Services
                         Route = "/app/manage/staff",
                         Icon = "pi pi-fw pi-users",
                         Order = 4,
+                        IsVisible = true,
+                        ParentId = ManageGuid // Manage
+                    },
+                    new NavigationItem
+                    {
+                        Id = OptionValueGuid,
+                        Name = "Option Values",
+                        Route = "/app/manage/option-values",
+                        Icon = "pi pi-fw pi-sliders-v", // Using sliders icon for option values
+                        Order = 5,
                         IsVisible = true,
                         ParentId = ManageGuid // Manage
                     },
@@ -275,6 +286,17 @@ namespace QwenHT.Services
                     {
                         RoleName = roleName,
                         NavigationItemId = StaffGuid // Staff Management
+                    });
+                }
+                await context.SaveChangesAsync();
+
+                // Option Values - available to Admin (Child item - item ID 8)
+                foreach (var roleName in new[] { "Admin" })
+                {
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = OptionValueGuid // Option Values
                     });
                 }
                 await context.SaveChangesAsync();
