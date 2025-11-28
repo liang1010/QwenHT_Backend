@@ -65,6 +65,9 @@ namespace QwenHT.Controllers
                 return BadRequest(ModelState);
             }
 
+            // Get the username from JWT claim using standard User context
+            var username = User?.Claims?.FirstOrDefault(c => c.Type == "username")?.Value ?? "Unknown";
+
             var staff = new Staff
             {
                 Id = Guid.NewGuid(),
@@ -76,8 +79,10 @@ namespace QwenHT.Controllers
                 HostelRoom = staffDto.HostelRoom,
                 Reference = staffDto.Reference,
                 Status = 1, // Set as active by default
+                CreatedBy = username, // Set the creator from JWT claim
                 CreatedAt = DateTime.UtcNow,
-                LastUpdated = DateTime.UtcNow
+                LastUpdated = DateTime.UtcNow,
+                LastModifiedBy = username // Also set as last modified by initial creator
             };
 
             _context.Staff.Add(staff);
@@ -101,6 +106,9 @@ namespace QwenHT.Controllers
                 return NotFound();
             }
 
+            // Get the username from JWT claim using standard User context
+            var username = User?.Claims?.FirstOrDefault(c => c.Type == "username")?.Value ?? "Unknown";
+
             // Update basic staff properties
             staff.NickName = staffDto.NickName;
             staff.FullName = staffDto.FullName;
@@ -111,6 +119,7 @@ namespace QwenHT.Controllers
             staff.Reference = staffDto.Reference;
             staff.Status = staffDto.Status;
             staff.LastUpdated = DateTime.UtcNow;
+            staff.LastModifiedBy = username; // Set the modifier from JWT claim
 
             // Update employment details if provided
             if (staffDto.CheckIn.HasValue || staffDto.CheckOut.HasValue || !string.IsNullOrEmpty(staffDto.Outlet) || !string.IsNullOrEmpty(staffDto.Type))
