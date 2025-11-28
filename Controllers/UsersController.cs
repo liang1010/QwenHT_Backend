@@ -9,6 +9,7 @@ namespace QwenHT.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Policy = "NavigationAccess")] // Use custom policy based on navigation permissions
     public class UsersController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;

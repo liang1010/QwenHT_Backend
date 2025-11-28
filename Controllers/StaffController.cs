@@ -8,6 +8,7 @@ namespace QwenHT.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize] // Require authentication but handle authorization at action level or with custom policy
     public class StaffController : ControllerBase
     {
         private readonly ApplicationDbContext _context;

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -126,42 +127,42 @@ namespace QwenHT.Controllers
             return Convert.ToBase64String(randomNumber);
         }
 
-        [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterModel model)
-        {
-            var userExists = await _userManager.FindByNameAsync(model.Username);
-            if (userExists != null)
-                return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Username already exists!" });
+        //[HttpPost("register")]
+        //public async Task<IActionResult> Register([FromBody] RegisterModel model)
+        //{
+        //    var userExists = await _userManager.FindByNameAsync(model.Username);
+        //    if (userExists != null)
+        //        return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Username already exists!" });
 
-            // Also check if email already exists
-            var emailExists = await _userManager.FindByEmailAsync(model.Email);
-            if (emailExists != null)
-                return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Email already exists!" });
+        //    // Also check if email already exists
+        //    var emailExists = await _userManager.FindByEmailAsync(model.Email);
+        //    if (emailExists != null)
+        //        return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Email already exists!" });
 
-            ApplicationUser user = new ApplicationUser()
-            {
-                Email = model.Email,
-                SecurityStamp = Guid.NewGuid().ToString(),
-                UserName = model.Username,
-                FirstName = model.FirstName,
-                LastName = model.LastName
-            };
-            var result = await _userManager.CreateAsync(user, model.Password);
-            if (!result.Succeeded)
-                return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User creation failed! Please check user details and try again." });
+        //    ApplicationUser user = new ApplicationUser()
+        //    {
+        //        Email = model.Email,
+        //        SecurityStamp = Guid.NewGuid().ToString(),
+        //        UserName = model.Username,
+        //        FirstName = model.FirstName,
+        //        LastName = model.LastName
+        //    };
+        //    var result = await _userManager.CreateAsync(user, model.Password);
+        //    if (!result.Succeeded)
+        //        return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User creation failed! Please check user details and try again." });
 
-            // Add default role
-            if (!string.IsNullOrEmpty(model.Role))
-            {
-                await _userManager.AddToRoleAsync(user, model.Role);
-            }
-            else
-            {
-                await _userManager.AddToRoleAsync(user, "User"); // Default role
-            }
+        //    // Add default role
+        //    if (!string.IsNullOrEmpty(model.Role))
+        //    {
+        //        await _userManager.AddToRoleAsync(user, model.Role);
+        //    }
+        //    else
+        //    {
+        //        await _userManager.AddToRoleAsync(user, "User"); // Default role
+        //    }
 
-            return Ok(new Response { Status = "Success", Message = "User created successfully!" });
-        }
+        //    return Ok(new Response { Status = "Success", Message = "User created successfully!" });
+        //}
 
         private JwtSecurityToken GetToken(List<Claim> authClaims)
         {

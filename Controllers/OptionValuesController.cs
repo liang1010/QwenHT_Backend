@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using QwenHT.Data;
 using QwenHT.Models;
@@ -7,6 +8,7 @@ namespace QwenHT.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Policy = "NavigationAccess")] // Use custom policy based on navigation permissions
     public class OptionValuesController : ControllerBase
     {
         private readonly ApplicationDbContext _context;

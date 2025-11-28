@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using QwenHT.Authorization;
 using QwenHT.Data;
 using QwenHT.Models;
 using QwenHT.Services;
@@ -25,6 +27,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     })
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
+
 
 builder.Services.AddAuthentication(options =>
     {
@@ -63,6 +66,15 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddScoped<INavigationService, NavigationService>();
 builder.Services.AddScoped<IOptionValueService, OptionValueService>();
+
+// Add custom authorization policies
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("NavigationAccess", policy =>
+        policy.Requirements.Add(new NavigationRequirement()));
+});
+
+builder.Services.AddScoped<IAuthorizationHandler, NavigationAuthorizationHandler>();
 
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(options =>

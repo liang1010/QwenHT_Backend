@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using QwenHT.Models;
@@ -6,6 +7,7 @@ namespace QwenHT.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Policy = "NavigationAccess")] // Use custom policy based on navigation permissions
     public class RolesController : ControllerBase
     {
         private readonly RoleManager<IdentityRole> _roleManager;

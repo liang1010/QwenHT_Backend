@@ -8,6 +8,7 @@ namespace QwenHT.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Policy = "NavigationAccess")] // Use custom policy for navigation access
     public class NavigationController : ControllerBase
     {
         private readonly INavigationService _navigationService;
