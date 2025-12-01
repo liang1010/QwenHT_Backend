@@ -21,10 +21,10 @@ namespace QwenHT.Models
         public int BodyMins { get; set; }
 
         [Precision(10, 2)]
-        public decimal StaffCommissionPrice { get; set; }
+        public decimal StaffCommission { get; set; }
 
         [Precision(10, 2)]
-        public decimal ExcommCommissionPrice { get; set; }
+        public decimal ExtraCommission { get; set; }
 
         [Precision(10, 2)]
         [Required]
@@ -37,5 +37,6 @@ namespace QwenHT.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
         public string? LastModifiedBy { get; set; }
+        public ICollection<Sales> SalesRecords { get; set; } = new List<Sales>();
     }
 }

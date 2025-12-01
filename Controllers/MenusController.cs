@@ -84,8 +84,8 @@ namespace QwenHT.Controllers
                 Category = menuDto.Category,
                 FootMins = menuDto.FootMins,
                 BodyMins = menuDto.BodyMins,
-                StaffCommissionPrice = menuDto.StaffCommissionPrice,
-                ExcommCommissionPrice = menuDto.ExcommCommissionPrice,
+                StaffCommission = menuDto.StaffCommission,
+                ExtraCommission = menuDto.ExtraCommission,
                 Price = menuDto.Price,
                 Status = 1,
                 CreatedBy = username,
@@ -133,8 +133,8 @@ namespace QwenHT.Controllers
             menu.Category = menuDto.Category;
             menu.FootMins = menuDto.FootMins;
             menu.BodyMins = menuDto.BodyMins;
-            menu.StaffCommissionPrice = menuDto.StaffCommissionPrice;
-            menu.ExcommCommissionPrice = menuDto.ExcommCommissionPrice;
+            menu.StaffCommission = menuDto.StaffCommission;
+            menu.ExtraCommission = menuDto.ExtraCommission;
             menu.Price = menuDto.Price;
             menu.Status = menuDto.Status;
             menu.LastUpdated = DateTime.UtcNow;

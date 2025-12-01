@@ -43,6 +43,7 @@ namespace QwenHT.Models
         public ICollection<StaffEmployment> Employments { get; set; } = new List<StaffEmployment>();
         public ICollection<StaffCompensation> Compensations { get; set; } = new List<StaffCompensation>();
         public ICollection<BankAccount> BankAccounts { get; set; } = new List<BankAccount>();
+        public ICollection<Sales> SalesRecords { get; set; } = new List<Sales>();
     }
 
     public class StaffEmployment

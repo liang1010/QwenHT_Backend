@@ -53,6 +53,8 @@ namespace QwenHT.Authorization
                 navigationRoute = "manage/user";
             else if (requestPath.Contains("/api/optionvalues"))
                 navigationRoute = "manage/option-value";
+            else if (requestPath.Contains("/api/menus"))
+                navigationRoute = "manage/menus";
 
             if (!string.IsNullOrEmpty(navigationRoute))
             {

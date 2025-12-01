@@ -137,6 +137,29 @@ namespace QwenHT.Data
                 // Ensure Category is only PRODUCT or TREATMENT (optional, enforced in app layer)
                 // EF Core doesn't support CHECK constraints via attributes (use Fluent API if needed)
             });
+
+            builder.Entity<Sales>(entity =>
+            {
+                entity.HasKey(s => s.Id);
+
+                // Relationships
+                entity.HasOne(s => s.Staff)
+                      .WithMany(st => st.SalesRecords)
+                      .HasForeignKey(s => s.StaffId)
+                      .OnDelete(DeleteBehavior.Restrict); // Avoid cascade delete
+
+                entity.HasOne(s => s.Menu)
+                      .WithMany(m => m.SalesRecords)
+                      .HasForeignKey(s => s.MenuId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                // Indexes for performance
+                entity.HasIndex(s => s.SalesDate);
+                entity.HasIndex(s => s.Outlet);
+                entity.HasIndex(s => s.Status);
+                entity.HasIndex(s => s.StaffId);
+                entity.HasIndex(s => s.MenuId);
+            });
         }
     }
 }

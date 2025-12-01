@@ -301,7 +301,7 @@ namespace QwenHT.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<decimal>("ExcommCommissionPrice")
+                    b.Property<decimal>("ExtraCommission")
                         .HasPrecision(10, 2)
                         .HasColumnType("decimal(10,2)");
 
@@ -318,7 +318,7 @@ namespace QwenHT.Migrations
                         .HasPrecision(10, 2)
                         .HasColumnType("decimal(10,2)");
 
-                    b.Property<decimal>("StaffCommissionPrice")
+                    b.Property<decimal>("StaffCommission")
                         .HasPrecision(10, 2)
                         .HasColumnType("decimal(10,2)");
 
@@ -345,7 +345,7 @@ namespace QwenHT.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValue(new DateTime(2025, 11, 28, 9, 1, 14, 8, DateTimeKind.Utc).AddTicks(9245));
+                        .HasDefaultValue(new DateTime(2025, 12, 1, 6, 3, 34, 901, DateTimeKind.Utc).AddTicks(7130));
 
                     b.Property<string>("CreatedBy")
                         .ValueGeneratedOnAdd()
@@ -366,7 +366,7 @@ namespace QwenHT.Migrations
                     b.Property<DateTime>("LastUpdated")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValue(new DateTime(2025, 11, 28, 9, 1, 14, 8, DateTimeKind.Utc).AddTicks(9453));
+                        .HasDefaultValue(new DateTime(2025, 12, 1, 6, 3, 34, 901, DateTimeKind.Utc).AddTicks(7292));
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -404,7 +404,7 @@ namespace QwenHT.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValue(new DateTime(2025, 11, 28, 9, 1, 14, 9, DateTimeKind.Utc).AddTicks(7249));
+                        .HasDefaultValue(new DateTime(2025, 12, 1, 6, 3, 34, 902, DateTimeKind.Utc).AddTicks(1606));
 
                     b.Property<string>("CreatedBy")
                         .ValueGeneratedOnAdd()
@@ -425,7 +425,7 @@ namespace QwenHT.Migrations
                     b.Property<DateTime>("LastUpdated")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValue(new DateTime(2025, 11, 28, 9, 1, 14, 9, DateTimeKind.Utc).AddTicks(7473));
+                        .HasDefaultValue(new DateTime(2025, 12, 1, 6, 3, 34, 902, DateTimeKind.Utc).AddTicks(1746));
 
                     b.Property<string>("Value")
                         .IsRequired()
@@ -454,6 +454,83 @@ namespace QwenHT.Migrations
                     b.HasIndex("NavigationItemId");
 
                     b.ToTable("RoleNavigations");
+                });
+
+            modelBuilder.Entity("QwenHT.Models.Sales", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("ExtraCommission")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<bool?>("FootCream")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("MenuId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool?>("Oil")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Outlet")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("Remark")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool?>("Request")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("SalesDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("StaffCommission")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<Guid>("StaffId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MenuId");
+
+                    b.HasIndex("Outlet");
+
+                    b.HasIndex("SalesDate");
+
+                    b.HasIndex("StaffId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("Sales");
                 });
 
             modelBuilder.Entity("QwenHT.Models.Staff", b =>
@@ -656,6 +733,25 @@ namespace QwenHT.Migrations
                     b.Navigation("NavigationItem");
                 });
 
+            modelBuilder.Entity("QwenHT.Models.Sales", b =>
+                {
+                    b.HasOne("QwenHT.Models.Menu", "Menu")
+                        .WithMany("SalesRecords")
+                        .HasForeignKey("MenuId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QwenHT.Models.Staff", "Staff")
+                        .WithMany("SalesRecords")
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Menu");
+
+                    b.Navigation("Staff");
+                });
+
             modelBuilder.Entity("QwenHT.Models.StaffCompensation", b =>
                 {
                     b.HasOne("QwenHT.Models.Staff", "Staff")
@@ -678,6 +774,11 @@ namespace QwenHT.Migrations
                     b.Navigation("Staff");
                 });
 
+            modelBuilder.Entity("QwenHT.Models.Menu", b =>
+                {
+                    b.Navigation("SalesRecords");
+                });
+
             modelBuilder.Entity("QwenHT.Models.NavigationItem", b =>
                 {
                     b.Navigation("Children");
@@ -692,6 +793,8 @@ namespace QwenHT.Migrations
                     b.Navigation("Compensations");
 
                     b.Navigation("Employments");
+
+                    b.Navigation("SalesRecords");
                 });
 #pragma warning restore 612, 618
         }
