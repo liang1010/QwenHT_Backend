@@ -9,6 +9,7 @@ using QwenHT.Models;
 using QwenHT.Services;
 using QwenHT.Services.Navigation;
 using System.Text;
+using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -81,7 +82,17 @@ builder.Services.AddControllersWithViews()
     {
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
         options.JsonSerializerOptions.WriteIndented = true;
+        // Add custom DateTime converters to ensure proper UTC handling
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        options.JsonSerializerOptions.Converters.Add(new QwenHT.Utilities.UtcJsonConverter());
+        options.JsonSerializerOptions.Converters.Add(new QwenHT.Utilities.NullableUtcJsonConverter());
     });
+
+// Set the default culture to UTC to ensure consistent date/time handling
+var utcTimeZone = TimeZoneInfo.Utc;
+var cultureInfo = new CultureInfo("en-US");
+CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
+CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
 
 var app = builder.Build();
 
