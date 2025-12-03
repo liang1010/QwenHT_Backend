@@ -9,14 +9,8 @@ namespace QwenHT.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize(Policy = "NavigationAccess")] // Use custom policy based on navigation permissions
-    public class OptionValuesController : ControllerBase
+    public class OptionValuesController(ApplicationDbContext _context) : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
-
-        public OptionValuesController(ApplicationDbContext context)
-        {
-            _context = context;
-        }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<OptionValue>>> GetOptionValues([FromQuery] string? category = null)

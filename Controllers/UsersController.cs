@@ -10,18 +10,8 @@ namespace QwenHT.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize(Policy = "NavigationAccess")] // Use custom policy based on navigation permissions
-    public class UsersController : ControllerBase
+    public class UsersController(UserManager<ApplicationUser> _userManager, RoleManager<IdentityRole> _roleManager, ApplicationDbContext _context) : ControllerBase
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
-        private readonly ApplicationDbContext _context;
-
-        public UsersController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ApplicationDbContext context)
-        {
-            _userManager = userManager;
-            _roleManager = roleManager;
-            _context = context;
-        }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()

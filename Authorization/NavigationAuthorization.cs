@@ -57,6 +57,8 @@ namespace QwenHT.Authorization
                 navigationRoute = "manage/menus";
             else if (requestPath.Contains("/api/dashboard"))
                 navigationRoute = "app/dashboard";
+            else if (requestPath.Contains("/api/sales"))
+                navigationRoute = "app/sales";
 
             if (!string.IsNullOrEmpty(navigationRoute))
             {

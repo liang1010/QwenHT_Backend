@@ -9,14 +9,8 @@ namespace QwenHT.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize(Policy = "NavigationAccess")] // Use custom policy based on navigation permissions
-    public class MenusController : ControllerBase
+    public class MenusController(ApplicationDbContext _context) : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
-
-        public MenusController(ApplicationDbContext context)
-        {
-            _context = context;
-        }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Menu>>> GetMenus([FromQuery] string? searchTerm = null)
@@ -147,7 +141,7 @@ namespace QwenHT.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteMenu(string id)
+        public async Task<IActionResult> DeleteMenu(Guid id)
         {
             var menu = await _context.Menus.FindAsync(id);
 

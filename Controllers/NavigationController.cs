@@ -9,36 +9,9 @@ namespace QwenHT.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize(Policy = "NavigationAccess")] // Use custom policy for navigation access
-    public class NavigationController : ControllerBase
+    public class NavigationController(INavigationService _navigationService, UserManager<ApplicationUser> _userManager) : ControllerBase
     {
-        private readonly INavigationService _navigationService;
-        private readonly UserManager<ApplicationUser> _userManager;
 
-        public NavigationController(INavigationService navigationService, UserManager<ApplicationUser> userManager)
-        {
-            _navigationService = navigationService;
-            _userManager = userManager;
-        }
-
-        //login usage
-        [HttpGet("user")]
-        [Authorize]
-        public async Task<ActionResult<IEnumerable<NavigationItem>>> GetUserNavigation()
-        {
-            var username = User.Claims.FirstOrDefault(c => c.Type == "username")?.Value;
-            var user = await _userManager.FindByNameAsync(username);
-            if (user == null)
-            {
-                return Unauthorized();
-            }
-
-            var userRoles = await _userManager.GetRolesAsync(user);
-            var navigationItems = await _navigationService.GetNavigationForUserAsync(user.Id, userRoles);
-
-            return Ok(navigationItems);
-        }
-
-        //for maintenance
         [HttpGet]
         public async Task<ActionResult<IEnumerable<NavigationItem>>> GetNavigationItems()
         {
@@ -77,7 +50,7 @@ namespace QwenHT.Controllers
             item.LastModifiedBy = username;
 
             var createdItem = await _navigationService.CreateNavigationItemAsync(item);
-            return CreatedAtAction(nameof(GetNavigationItem), new { id = createdItem.Id }, createdItem);
+            return CreatedAtAction(nameof(CreateNavigationItem), new { id = createdItem.Id }, createdItem);
         }
 
         [HttpPut("{id}")]
