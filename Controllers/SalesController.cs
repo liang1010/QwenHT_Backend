@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QwenHT.Data;
@@ -6,7 +7,8 @@ using QwenHT.Models;
 namespace QwenHT.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api")]
+    [Authorize(Policy = "NavigationAccess")] // Use custom policy based on navigation permissions
     public class SalesController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
