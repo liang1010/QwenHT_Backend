@@ -35,7 +35,7 @@ namespace QwenHT.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Menu>> GetMenu(string id)
+        public async Task<ActionResult<Menu>> GetMenu(Guid id)
         {
             var menu = await _context.Menus.FindAsync(id);
 
@@ -95,7 +95,7 @@ namespace QwenHT.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateMenu(string id, Menu menuDto)
+        public async Task<IActionResult> UpdateMenu(Guid id, Menu menuDto)
         {
             if (!ModelState.IsValid)
             {
@@ -113,7 +113,7 @@ namespace QwenHT.Controllers
             if (!string.IsNullOrEmpty(menuDto.Code))
             {
                 var existingMenu = await _context.Menus
-                    .FirstOrDefaultAsync(m => m.Code!.ToLower() == menuDto.Code.ToLower() && m.Id.ToString() != id);
+                    .FirstOrDefaultAsync(m => m.Code!.ToLower() == menuDto.Code.ToLower() && m.Id != id);
 
                 if (existingMenu != null)
                 {
