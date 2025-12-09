@@ -82,7 +82,7 @@ namespace QwenHT.Controllers
             return CreatedAtAction(nameof(GetOptionValue), new { id = optionValue.Id }, optionValue);
         }
 
-        [HttpPut("{id}")]
+        [HttpPost("{id}")]
         public async Task<IActionResult> UpdateOptionValue(Guid id, OptionValue optionValue)
         {
             if (!ModelState.IsValid)
@@ -124,7 +124,7 @@ namespace QwenHT.Controllers
             return Ok(existingOptionValue);
         }
 
-        [HttpDelete("{id}")]
+        [HttpPost("{id}/delete")]
         public async Task<IActionResult> DeleteOptionValue(Guid id)
         {
             var optionValue = await _context.OptionValues.FindAsync(id);

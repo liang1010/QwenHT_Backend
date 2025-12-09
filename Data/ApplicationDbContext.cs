@@ -40,15 +40,16 @@ namespace QwenHT.Data
             builder.Entity<NavigationItem>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.Id).HasColumnType("uniqueidentifier").ValueGeneratedNever(); // GUID, not auto-generated
+                entity.Property(e => e.Id).ValueGeneratedNever(); // GUID, not auto-generated
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Route).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Icon).HasMaxLength(200);
 
                 // Configure timestamp and modifier fields
                 entity.Property(e => e.CreatedBy).HasDefaultValue("Migration");
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()"); // Use SQL Server's UTC function
-                entity.Property(e => e.LastUpdated).HasDefaultValueSql("GETUTCDATE()"); // Use SQL Server's UTC function
+                // Using database-agnostic default value for UTC timestamp
+                entity.Property(e => e.CreatedAt);
+                entity.Property(e => e.LastUpdated);
 
                 // Configure the self-referencing relationship
                 entity.HasOne(n => n.Parent)
@@ -119,8 +120,8 @@ namespace QwenHT.Data
                 entity.Property(e => e.Value).IsRequired().HasMaxLength(255);
                 entity.Property(e => e.Description).HasMaxLength(500);
                 entity.Property(e => e.CreatedBy).HasDefaultValue("Migration");
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()"); // Use SQL Server's UTC function
-                entity.Property(e => e.LastUpdated).HasDefaultValueSql("GETUTCDATE()"); // Use SQL Server's UTC function
+                entity.Property(e => e.CreatedAt);
+                entity.Property(e => e.LastUpdated);
 
                 entity.HasIndex(e => new { e.Category, e.Value }).IsUnique(); // Prevent duplicate values in same category
             });
@@ -162,8 +163,8 @@ namespace QwenHT.Data
                 entity.HasIndex(s => s.MenuId);
 
                 // Configure timestamp fields for Sales
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
-                entity.Property(e => e.LastUpdated).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt);
+                entity.Property(e => e.LastUpdated);
             });
 
             // Menu
@@ -172,8 +173,8 @@ namespace QwenHT.Data
                 entity.HasKey(e => e.Id);
 
                 // Configure timestamp fields for Menu
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
-                entity.Property(e => e.LastUpdated).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt);
+                entity.Property(e => e.LastUpdated);
 
                 // Optional: Add index for common queries
                 entity.HasIndex(e => e.Category);
@@ -188,15 +189,15 @@ namespace QwenHT.Data
                 entity.Property(e => e.Id).ValueGeneratedNever(); // Guid generated in C#
 
                 // Configure timestamp fields for Staff
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
-                entity.Property(e => e.LastUpdated).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt);
+                entity.Property(e => e.LastUpdated);
             });
 
             // ApplicationUser
             builder.Entity<ApplicationUser>(entity =>
             {
                 // Configure timestamp fields for ApplicationUser
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.CreatedAt);
             });
         }
     }

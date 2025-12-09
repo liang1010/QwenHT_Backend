@@ -12,6 +12,9 @@ namespace QwenHT.Models
         [Required, MaxLength(255)]
         public string FullName { get; set; } = default!;
 
+        [MaxLength(100)]
+        public string? Gender { get; set; }
+
         [MaxLength(20)]
         public string? PhoneNo { get; set; }
 
@@ -69,6 +72,9 @@ namespace QwenHT.Models
         [Required, MaxLength(255)]
         public string FullName { get; set; } = default!;
 
+        [MaxLength(100)]
+        public string? Gender { get; set; }
+
         [MaxLength(20)]
         public string? PhoneNo { get; set; }
 
@@ -91,6 +97,9 @@ namespace QwenHT.Models
 
         [MaxLength(255)]
         public string FullName { get; set; } = default!;
+
+        [MaxLength(100)]
+        public string? Gender { get; set; }
 
         [MaxLength(20)]
         public string? PhoneNo { get; set; }

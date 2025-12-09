@@ -44,7 +44,7 @@ namespace QwenHT.Controllers
             return Ok(new { Message = "Role created successfully" });
         }
 
-        [HttpDelete("{id}")]
+        [HttpPost("{id}/delete")]
         public async Task<IActionResult> DeleteRole(string id)
         {
             var role = await _roleManager.FindByIdAsync(id);

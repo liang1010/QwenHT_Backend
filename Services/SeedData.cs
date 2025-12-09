@@ -100,6 +100,9 @@ namespace QwenHT.Services
             Guid StaffGuid = Guid.NewGuid();
             Guid OptionValueGuid = Guid.NewGuid();
             Guid RoleGuid = Guid.NewGuid();
+            Guid MenuGuid = Guid.NewGuid();
+            Guid KeyInGuid = Guid.NewGuid();
+            Guid SalesGuid = Guid.NewGuid();
 
             // Seed navigation items if they don't exist
             if (!context.NavigationItems.AsNoTracking().Any())
@@ -120,6 +123,15 @@ namespace QwenHT.Services
                     {
                         Id = ManageGuid,
                         Name = "Manage",
+                        Route = "",
+                        Icon = "",
+                        Order = 3,
+                        IsVisible = true
+                    },
+                    new NavigationItem
+                    {
+                        Id = SalesGuid,
+                        Name = "Sales",
                         Route = "",
                         Icon = "",
                         Order = 2,
@@ -203,10 +215,30 @@ namespace QwenHT.Services
                         Id = RoleGuid,
                         Name = "Role Management",
                         Route = "/app/manage/role",
-                        Icon = "pi pi-fw pi-shief", // Using sliders icon for option values
+                        Icon = "pi pi-fw pi-shield", // Using sliders icon for option values
                         Order = 5,
                         IsVisible = true,
                         ParentId = ManageGuid // Manage
+                    }, 
+                    new NavigationItem
+                    {
+                        Id=MenuGuid,
+                        Name = "Menu Management",
+                        Route = "/app/manage/menus",
+                        Icon = "pi pi-fw pi-book",
+                        Order = 1,
+                        IsVisible = true,
+                        ParentId = ManageGuid // Home
+                    },
+                    new NavigationItem
+                    {
+                        Id=KeyInGuid,
+                        Name = "Key-In Sales",
+                        Route = "/app/sales",
+                        Icon = "pi pi-fw pi-credit-card",
+                        Order = 1,
+                        IsVisible = true,
+                        ParentId = SalesGuid // Home
                     },
                 };
 
@@ -227,17 +259,6 @@ namespace QwenHT.Services
                 // Home - available to all (Parent item - item ID 1)
                 foreach (var roleName in allRoles)
                 {
-
-
-                    //Guid HomeGuid = Guid.NewGuid();
-                    //Guid ManageGuid = Guid.NewGuid();
-                    //Guid DashboardGuid = Guid.NewGuid();
-                    //Guid UserGuid = Guid.NewGuid();
-                    //Guid LandingGuid = Guid.NewGuid();
-                    //Guid NaviGuid = Guid.NewGuid();
-                    //Guid StaffGuid = Guid.NewGuid();
-                    //Guid OptionValueGuid = Guid.NewGuid();
-                    //Guid RoleGuid = Guid.NewGuid();
                     context.RoleNavigations.Add(new RoleNavigation
                     {
                         RoleName = roleName,
@@ -282,6 +303,21 @@ namespace QwenHT.Services
                     {
                         RoleName = roleName,
                         NavigationItemId = RoleGuid // Home
+                    });
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = MenuGuid // Home
+                    });
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = KeyInGuid // Home
+                    });
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = SalesGuid // Home
                     });
                 }
                 await context.SaveChangesAsync();

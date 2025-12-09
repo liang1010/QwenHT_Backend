@@ -100,7 +100,7 @@ namespace QwenHT.Controllers
             return CreatedAtAction(nameof(GetUser), new { id = user.Id }, userDto);
         }
 
-        [HttpPut("{id}")]
+        [HttpPost("{id}")]
         public async Task<IActionResult> UpdateUser(string id, UpdateUserDto model)
         {
             var user = await _userManager.FindByIdAsync(id);
@@ -133,7 +133,7 @@ namespace QwenHT.Controllers
             return Ok(user);
         }
 
-        [HttpDelete("{id}")]
+        [HttpPost("{id}/delete")]
         public async Task<IActionResult> DeleteUser(string id)
         {
             var user = await _userManager.FindByIdAsync(id);

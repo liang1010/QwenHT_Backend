@@ -67,6 +67,7 @@ namespace QwenHT.Controllers
                 Id = Guid.NewGuid(),
                 NickName = staffDto.NickName,
                 FullName = staffDto.FullName,
+                Gender = staffDto.Gender,
                 PhoneNo = staffDto.PhoneNo,
                 Nationality = staffDto.Nationality,
                 HostelName = staffDto.HostelName,
@@ -86,7 +87,7 @@ namespace QwenHT.Controllers
             return CreatedAtAction(nameof(GetStaff), new { id = staff.Id }, createdStaffDto);
         }
 
-        [HttpPut("{id}")]
+        [HttpPost("{id}")]
         public async Task<IActionResult> UpdateStaff(Guid id, UpdateStaffDto staffDto)
         {
             var staff = await _context.Staff
@@ -105,6 +106,7 @@ namespace QwenHT.Controllers
 
             // Update basic staff properties
             staff.NickName = staffDto.NickName;
+            staff.Gender = staffDto.Gender;
             staff.FullName = staffDto.FullName;
             staff.PhoneNo = staffDto.PhoneNo;
             staff.Nationality = staffDto.Nationality;
@@ -205,7 +207,7 @@ namespace QwenHT.Controllers
             return Ok(MapToDto(staff));
         }
 
-        [HttpDelete("{id}")]
+        [HttpPost("{id}/delete")]
         public async Task<IActionResult> DeleteStaff(Guid id)
         {
             var staff = await _context.Staff.FindAsync(id);
@@ -310,6 +312,7 @@ namespace QwenHT.Controllers
                 Id = staff.Id,
                 NickName = staff.NickName,
                 FullName = staff.FullName,
+                Gender = staff.Gender,
                 PhoneNo = staff.PhoneNo,
                 Nationality = staff.Nationality,
                 HostelName = staff.HostelName,

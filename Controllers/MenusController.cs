@@ -94,7 +94,7 @@ namespace QwenHT.Controllers
             return CreatedAtAction(nameof(GetMenu), new { id = menu.Id }, menu);
         }
 
-        [HttpPut("{id}")]
+        [HttpPost("{id}")]
         public async Task<IActionResult> UpdateMenu(Guid id, Menu menuDto)
         {
             if (!ModelState.IsValid)
@@ -140,7 +140,7 @@ namespace QwenHT.Controllers
             return Ok(menu);
         }
 
-        [HttpDelete("{id}")]
+        [HttpPost("{id}/delete")]
         public async Task<IActionResult> DeleteMenu(Guid id)
         {
             var menu = await _context.Menus.FindAsync(id);

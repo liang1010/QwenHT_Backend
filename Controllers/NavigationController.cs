@@ -53,7 +53,7 @@ namespace QwenHT.Controllers
             return CreatedAtAction(nameof(CreateNavigationItem), new { id = createdItem.Id }, createdItem);
         }
 
-        [HttpPut("{id}")]
+        [HttpPost("{id}")]
         public async Task<IActionResult> UpdateNavigationItem(Guid id, [FromBody] NavigationItem item)
         {
             if (!ModelState.IsValid)
@@ -83,7 +83,7 @@ namespace QwenHT.Controllers
             return Ok(updatedItem);
         }
 
-        [HttpDelete("{id}")]
+        [HttpPost("{id}/delete")]
         public async Task<IActionResult> DeleteNavigationItem(Guid id)
         {
             var result = await _navigationService.DeleteNavigationItemAsync(id);
@@ -107,7 +107,7 @@ namespace QwenHT.Controllers
             return Ok();
         }
 
-        [HttpDelete("{navigationId}/roles/{roleName}")]
+        [HttpPost("{navigationId}/roles/{roleName}/remove")]
         public async Task<IActionResult> RemoveRoleFromNavigation(Guid navigationId, string roleName)
         {
             var result = await _navigationService.RemoveRoleFromNavigationAsync(navigationId, roleName);
