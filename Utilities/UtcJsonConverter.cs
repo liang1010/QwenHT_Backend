@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace QwenHT.Utilities
@@ -15,7 +15,13 @@ namespace QwenHT.Utilities
         public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)
         {
             // Ensure all DateTime values are written in UTC format
-            var utcValue = value.Kind == DateTimeKind.Utc ? value : value.ToUniversalTime();
+            DateTime utcValue = value.Kind switch
+            {
+                DateTimeKind.Utc => value,
+                DateTimeKind.Local => value.ToUniversalTime(),
+                DateTimeKind.Unspecified => DateTime.SpecifyKind(value, DateTimeKind.Utc), // ✅ NO SHIFT
+                _ => value
+            };
             writer.WriteStringValue(utcValue);
         }
     }
@@ -39,7 +45,13 @@ namespace QwenHT.Utilities
             if (value.HasValue)
             {
                 // Ensure all DateTime values are written in UTC format
-                var utcValue = value.Value.Kind == DateTimeKind.Utc ? value.Value : value.Value.ToUniversalTime();
+                DateTime utcValue = value.Value.Kind switch
+                {
+                    DateTimeKind.Utc => value.Value,
+                    DateTimeKind.Local => value.Value.ToUniversalTime(),
+                    DateTimeKind.Unspecified => DateTime.SpecifyKind(value.Value, DateTimeKind.Utc), // ✅ NO SHIFT
+                    _ => value.Value
+                };
                 writer.WriteStringValue(utcValue);
             }
             else

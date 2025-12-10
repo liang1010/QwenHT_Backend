@@ -205,9 +205,208 @@ namespace QwenHT.Controllers
             return Ok(response);
         }
 
+        // GET api/sales/inquiry - Retrieve sales records for inquiry with virtual scrolling support
+        [HttpGet("sales/inquiry")]
+        public async Task<ActionResult<PagedResponse<SalesInquiryDto>>> GetSalesInquiry(
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] string? outlet = null,
+            [FromQuery] int offset = 0,
+            [FromQuery] int limit = 20)
+        {
+            var query = _context.Sales
+                .Include(s => s.Staff)
+                .Include(s => s.Menu)
+                .AsQueryable();
+
+            // Apply filters if provided
+            if (startDate.HasValue)
+            {
+                query = query.Where(s => s.SalesDate >= startDate.Value.Date);
+            }
+
+            if (endDate.HasValue)
+            {
+                query = query.Where(s => s.SalesDate <= endDate.Value.Date.AddDays(1).AddTicks(-1)); // Include the full day
+            }
+
+            if (!string.IsNullOrEmpty(outlet))
+            {
+                query = query.Where(s => s.Outlet == outlet);
+            }
+
+            // Apply active status filter
+            query = query.Where(s => s.Status == 1);
+
+            // Count total records for pagination
+            var totalRecords = await query.CountAsync();
+
+            // Apply ordering and pagination
+            var salesRecords = await query
+                .OrderByDescending(s => s.SalesDate)
+                .ThenByDescending(s => s.CreatedAt)
+                .Skip(offset)
+                .Take(limit)
+                .Select(s => new SalesInquiryDto
+                {
+                    Id = s.Id,
+                    SalesDate = s.SalesDate,
+                    StaffId = s.StaffId,
+                    StaffName = s.Staff.FullName,
+                    Outlet = s.Outlet,
+                    OutletName = s.Outlet, // In a real scenario, this would come from an Outlet entity
+                    MenuId = s.MenuId,
+                    MenuDescription = s.Menu.Description,
+                    Price = s.Price,
+                    BodyMins = s.Menu.BodyMins,
+                    FootMins = s.Menu.FootMins,
+                    StaffCommission = s.StaffCommission,
+                    ExtraCommission = s.ExtraCommission,
+                    Remark = s.Remark,
+                    Request = s.Request ?? false,
+                    FootCream = s.FootCream ?? false,
+                    Oil = s.Oil ?? false
+                })
+                .ToListAsync();
+
+            var response = new PagedResponse<SalesInquiryDto>
+            {
+                Data = salesRecords,
+                TotalCount = totalRecords,
+                Offset = offset,
+                Limit = limit
+            };
+
+            return Ok(response);
+        }
+
+        // PUT api/sales/{id} - Update an existing sales record
+        [HttpPut("sales/{id}")]
+        public async Task<ActionResult<Sales>> UpdateSales(Guid id, [FromBody] UpdateSalesRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var sales = await _context.Sales.FindAsync(id);
+            if (sales == null)
+            {
+                return NotFound();
+            }
+
+            // Validate that the provided StaffId exists (if changing)
+            if (request.StaffId != sales.StaffId)
+            {
+                var staff = await _context.Staff.FindAsync(request.StaffId);
+                if (staff == null)
+                {
+                    return BadRequest(new { error = "Invalid Staff ID" });
+                }
+            }
+
+            // Validate that the provided MenuId exists (if changing)
+            if (request.MenuId != sales.MenuId)
+            {
+                var menu = await _context.Menus.FindAsync(request.MenuId);
+                if (menu == null)
+                {
+                    return BadRequest(new { error = "Invalid Menu ID" });
+                }
+            }
+
+            // Update the sales record
+            sales.SalesDate = request.SalesDate;
+            sales.StaffId = request.StaffId;
+            sales.Outlet = request.Outlet;
+            sales.MenuId = request.MenuId;
+            sales.Request = request.Request;
+            sales.FootCream = request.FootCream;
+            sales.Oil = request.Oil;
+            sales.Price = request.Price;
+            sales.ExtraCommission = request.ExtraCommission;
+            sales.StaffCommission = request.StaffCommission;
+            sales.Remark = request.Remark;
+            sales.LastUpdated = DateTime.UtcNow;
+            sales.LastModifiedBy = User?.Identity?.Name ?? "System";
+
+            await _context.SaveChangesAsync();
+
+            // Return the updated sales record
+            var updatedSales = await _context.Sales
+                .Include(s => s.Staff)
+                .Include(s => s.Menu)
+                .FirstOrDefaultAsync(s => s.Id == sales.Id);
+
+            return Ok(updatedSales);
+        }
+
+        // DELETE api/sales/{id} - Delete a sales record
+        [HttpDelete("sales/{id}")]
+        public async Task<IActionResult> DeleteSales(Guid id)
+        {
+            var sales = await _context.Sales.FindAsync(id);
+            if (sales == null)
+            {
+                return NotFound();
+            }
+
+            // Soft delete by updating status to inactive
+            sales.Status = 0; // Inactive
+            sales.LastUpdated = DateTime.UtcNow;
+            sales.LastModifiedBy = User?.Identity?.Name ?? "System";
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Sales record deleted successfully" });
+        }
+
     }
 
-    
+    // DTO for sales inquiry response
+    public class SalesInquiryDto
+    {
+        public Guid Id { get; set; }
+        public DateTime SalesDate { get; set; }
+        public Guid StaffId { get; set; }
+        public string StaffName { get; set; } = string.Empty;
+        public string Outlet { get; set; } = string.Empty;
+        public string OutletName { get; set; } = string.Empty;
+        public Guid MenuId { get; set; }
+        public string MenuDescription { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public int BodyMins { get; set; }
+        public int FootMins { get; set; }
+        public decimal StaffCommission { get; set; }
+        public decimal ExtraCommission { get; set; }
+        public string? Remark { get; set; }
+        public bool Request { get; set; }
+        public bool FootCream { get; set; }
+        public bool Oil { get; set; }
+    }
+
+    public class UpdateSalesRequest
+    {
+        public DateTime SalesDate { get; set; }
+        public Guid StaffId { get; set; }
+        public string Outlet { get; set; } = string.Empty;
+        public Guid MenuId { get; set; }
+        public bool? Request { get; set; }
+        public bool? FootCream { get; set; }
+        public bool? Oil { get; set; }
+        public decimal Price { get; set; }
+        public decimal ExtraCommission { get; set; }
+        public decimal StaffCommission { get; set; }
+        public string? Remark { get; set; }
+    }
+
+    public class PagedResponse<T>
+    {
+        public List<T> Data { get; set; } = new();
+        public int TotalCount { get; set; }
+        public int Offset { get; set; }
+        public int Limit { get; set; }
+    }
 
     public class ActiveStaffDto
     {
@@ -243,4 +442,38 @@ namespace QwenHT.Controllers
         public decimal StaffCommission { get; set; }
         public string? Remark { get; set; }
     }
+}
+public class ActiveStaffDto
+{
+    public Guid Id { get; set; }
+    public string? NickName { get; set; }
+    public string FullName { get; set; } = string.Empty;
+}
+
+public class ActiveMenuDto
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public int FootMins { get; set; }
+    public int BodyMins { get; set; }
+    public decimal Price { get; set; }
+    public decimal StaffCommission { get; set; }
+    public decimal ExtraCommission { get; set; }
+}
+
+public class CreateSalesRequest
+{
+    public DateTime SalesDate { get; set; } = DateTime.UtcNow;
+    public Guid StaffId { get; set; }
+    public string Outlet { get; set; } = string.Empty;
+    public Guid MenuId { get; set; }
+    public bool? Request { get; set; }
+    public bool? FootCream { get; set; }
+    public bool? Oil { get; set; }
+    public decimal Price { get; set; }
+    public decimal ExtraCommission { get; set; }
+    public decimal StaffCommission { get; set; }
+    public string? Remark { get; set; }
 }
