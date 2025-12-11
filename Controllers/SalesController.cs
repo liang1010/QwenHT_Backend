@@ -115,8 +115,8 @@ namespace QwenHT.Controllers
                 Remark = request.Remark,
                 Status = 1, // Active by default
                 CreatedBy = currentUser,
-                CreatedAt = DateTime.UtcNow,
-                LastUpdated = DateTime.UtcNow,
+                CreatedAt = DateTimeOffset.UtcNow,
+                LastUpdated = DateTimeOffset.UtcNow,
                 LastModifiedBy = currentUser
             };
 
@@ -327,7 +327,7 @@ namespace QwenHT.Controllers
             sales.ExtraCommission = request.ExtraCommission;
             sales.StaffCommission = request.StaffCommission;
             sales.Remark = request.Remark;
-            sales.LastUpdated = DateTime.UtcNow;
+            sales.LastUpdated = DateTimeOffset.UtcNow;
             sales.LastModifiedBy = User?.Identity?.Name ?? "System";
 
             await _context.SaveChangesAsync();
@@ -353,7 +353,7 @@ namespace QwenHT.Controllers
 
             // Soft delete by updating status to inactive
             sales.Status = 0; // Inactive
-            sales.LastUpdated = DateTime.UtcNow;
+            sales.LastUpdated = DateTimeOffset.UtcNow;
             sales.LastModifiedBy = User?.Identity?.Name ?? "System";
 
             await _context.SaveChangesAsync();
@@ -367,7 +367,7 @@ namespace QwenHT.Controllers
     public class SalesInquiryDto
     {
         public Guid Id { get; set; }
-        public DateTime SalesDate { get; set; }
+        public DateTimeOffset SalesDate { get; set; }
         public Guid StaffId { get; set; }
         public string StaffName { get; set; } = string.Empty;
         public string Outlet { get; set; } = string.Empty;
@@ -387,7 +387,7 @@ namespace QwenHT.Controllers
 
     public class UpdateSalesRequest
     {
-        public DateTime SalesDate { get; set; }
+        public DateTimeOffset SalesDate { get; set; }
         public Guid StaffId { get; set; }
         public string Outlet { get; set; } = string.Empty;
         public Guid MenuId { get; set; }

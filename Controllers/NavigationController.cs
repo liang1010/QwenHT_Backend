@@ -45,8 +45,8 @@ namespace QwenHT.Controllers
             // Set audit fields
             item.Id = Guid.NewGuid();
             item.CreatedBy = username;
-            item.CreatedAt = DateTime.UtcNow;
-            item.LastUpdated = DateTime.UtcNow;
+            item.CreatedAt = DateTimeOffset.UtcNow;
+            item.LastUpdated = DateTimeOffset.UtcNow;
             item.LastModifiedBy = username;
 
             var createdItem = await _navigationService.CreateNavigationItemAsync(item);
@@ -71,7 +71,7 @@ namespace QwenHT.Controllers
             var username = User?.Claims?.FirstOrDefault(c => c.Type == "username")?.Value ?? "Unknown";
 
             // Set audit fields for update
-            item.LastUpdated = DateTime.UtcNow;
+            item.LastUpdated = DateTimeOffset.UtcNow;
             item.LastModifiedBy = username;
 
             var updatedItem = await _navigationService.UpdateNavigationItemAsync(id, item);

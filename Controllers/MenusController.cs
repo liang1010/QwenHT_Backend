@@ -83,8 +83,8 @@ namespace QwenHT.Controllers
                 Price = menuDto.Price,
                 Status = 1,
                 CreatedBy = username,
-                CreatedAt = DateTime.UtcNow,
-                LastUpdated = DateTime.UtcNow,
+                CreatedAt = DateTimeOffset.UtcNow,
+                LastUpdated = DateTimeOffset.UtcNow,
                 LastModifiedBy = username
             };
 
@@ -131,7 +131,7 @@ namespace QwenHT.Controllers
             menu.ExtraCommission = menuDto.ExtraCommission;
             menu.Price = menuDto.Price;
             menu.Status = menuDto.Status;
-            menu.LastUpdated = DateTime.UtcNow;
+            menu.LastUpdated = DateTimeOffset.UtcNow;
             menu.LastModifiedBy = username;
 
             _context.Menus.Update(menu);

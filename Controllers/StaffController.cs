@@ -75,8 +75,8 @@ namespace QwenHT.Controllers
                 Reference = staffDto.Reference,
                 Status = 1, // Set as active by default
                 CreatedBy = username, // Set the creator from JWT claim
-                CreatedAt = DateTime.UtcNow,
-                LastUpdated = DateTime.UtcNow,
+                CreatedAt = DateTimeOffset.UtcNow,
+                LastUpdated = DateTimeOffset.UtcNow,
                 LastModifiedBy = username // Also set as last modified by initial creator
             };
 
@@ -114,7 +114,7 @@ namespace QwenHT.Controllers
             staff.HostelRoom = staffDto.HostelRoom;
             staff.Reference = staffDto.Reference;
             staff.Status = staffDto.Status;
-            staff.LastUpdated = DateTime.UtcNow;
+            staff.LastUpdated = DateTimeOffset.UtcNow;
             staff.LastModifiedBy = username; // Set the modifier from JWT claim
 
             // Update employment details if provided
@@ -130,8 +130,8 @@ namespace QwenHT.Controllers
                         StaffId = staff.Id,
                         Outlet = staffDto.Outlet ?? "Default",
                         Type = staffDto.Type ?? "Therapist",
-                        CheckIn = staffDto.CheckIn.HasValue ? DateOnly.FromDateTime(staffDto.CheckIn.Value) : null,
-                        CheckOut = staffDto.CheckOut.HasValue ? DateOnly.FromDateTime(staffDto.CheckOut.Value) : null
+                        CheckIn = staffDto.CheckIn.HasValue ? DateOnly.FromDateTime(DateTime.SpecifyKind(staffDto.CheckIn.Value.DateTime, DateTimeKind.Utc)) : null,
+                        CheckOut = staffDto.CheckOut.HasValue ? DateOnly.FromDateTime(DateTime.SpecifyKind(staffDto.CheckOut.Value.DateTime, DateTimeKind.Utc)) : null
                     };
                     _ = _context.StaffEmployments.Add(newEmployment);
                 }
@@ -140,8 +140,8 @@ namespace QwenHT.Controllers
                     // Update existing employment record
                     existingEmployment.Outlet = !string.IsNullOrEmpty(staffDto.Outlet) ? staffDto.Outlet : existingEmployment.Outlet;
                     existingEmployment.Type = !string.IsNullOrEmpty(staffDto.Type) ? staffDto.Type : existingEmployment.Type;
-                    existingEmployment.CheckIn = staffDto.CheckIn.HasValue ? DateOnly.FromDateTime(staffDto.CheckIn.Value) : existingEmployment.CheckIn;
-                    existingEmployment.CheckOut = staffDto.CheckOut.HasValue ? DateOnly.FromDateTime(staffDto.CheckOut.Value) : existingEmployment.CheckOut;
+                    existingEmployment.CheckIn = staffDto.CheckIn.HasValue ? DateOnly.FromDateTime(DateTime.SpecifyKind(staffDto.CheckIn.Value.DateTime, DateTimeKind.Utc)) : existingEmployment.CheckIn;
+                    existingEmployment.CheckOut = staffDto.CheckOut.HasValue ? DateOnly.FromDateTime(DateTime.SpecifyKind(staffDto.CheckOut.Value.DateTime, DateTimeKind.Utc)) : existingEmployment.CheckOut;
                 }
             }
 
@@ -218,7 +218,7 @@ namespace QwenHT.Controllers
 
             // Instead of hard delete, we'll mark as inactive (status = 0)
             staff.Status = 0; // Inactive
-            staff.LastUpdated = DateTime.UtcNow;
+            staff.LastUpdated = DateTimeOffset.UtcNow;
 
             _context.Staff.Update(staff);
             await _context.SaveChangesAsync();
@@ -331,8 +331,8 @@ namespace QwenHT.Controllers
                 var employment = staff.Employments.First(); // Get the first employment record
                 staffDto.Outlet = employment.Outlet;
                 staffDto.Type = employment.Type;
-                staffDto.CheckIn = employment.CheckIn?.ToDateTime(TimeOnly.MinValue);
-                staffDto.CheckOut = employment.CheckOut?.ToDateTime(TimeOnly.MinValue);
+                staffDto.CheckIn = employment.CheckIn.HasValue ? new DateTimeOffset(employment.CheckIn.Value.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero) : null;
+                staffDto.CheckOut = employment.CheckOut.HasValue ? new DateTimeOffset(employment.CheckOut.Value.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero) : null;
             }
 
             // Add compensation details if they exist

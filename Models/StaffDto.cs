@@ -35,9 +35,9 @@ namespace QwenHT.Models
 
         public string? Type { get; set; }
 
-        public DateTime? CheckIn { get; set; }
+        public DateTimeOffset? CheckIn { get; set; }
 
-        public DateTime? CheckOut { get; set; }
+        public DateTimeOffset? CheckOut { get; set; }
 
         public decimal? FootRatePerHour { get; set; }
 
@@ -56,9 +56,9 @@ namespace QwenHT.Models
         [MaxLength(100)]
         public string? CreatedBy { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
-        public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+        public DateTimeOffset LastUpdated { get; set; } = DateTimeOffset.UtcNow;
 
         [MaxLength(100)]
         public string? LastModifiedBy { get; set; }
@@ -121,9 +121,9 @@ namespace QwenHT.Models
 
         public string? Type { get; set; }
 
-        public DateTime? CheckIn { get; set; }
+        public DateTimeOffset? CheckIn { get; set; }
 
-        public DateTime? CheckOut { get; set; }
+        public DateTimeOffset? CheckOut { get; set; }
 
         public decimal? FootRatePerHour { get; set; }
 

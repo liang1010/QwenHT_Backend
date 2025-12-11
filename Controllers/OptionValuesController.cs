@@ -71,8 +71,8 @@ namespace QwenHT.Controllers
 
             optionValue.Id = Guid.NewGuid();
             optionValue.CreatedBy = username;
-            optionValue.CreatedAt = DateTime.UtcNow;
-            optionValue.LastUpdated = DateTime.UtcNow;
+            optionValue.CreatedAt = DateTimeOffset.UtcNow;
+            optionValue.LastUpdated = DateTimeOffset.UtcNow;
             optionValue.LastModifiedBy = username; // Set the modifier from JWT claim
             optionValue.IsActive = true; // Default to active
 
@@ -115,7 +115,7 @@ namespace QwenHT.Controllers
             existingOptionValue.Value = optionValue.Value;
             existingOptionValue.Description = optionValue.Description;
             existingOptionValue.IsActive = optionValue.IsActive;
-            existingOptionValue.LastUpdated = DateTime.UtcNow;
+            existingOptionValue.LastUpdated = DateTimeOffset.UtcNow;
             existingOptionValue.LastModifiedBy = username; // Set the modifier from JWT claim
 
             _context.OptionValues.Update(existingOptionValue);
@@ -139,7 +139,7 @@ namespace QwenHT.Controllers
 
             // Soft delete - set IsActive to false instead of removing from DB
             optionValue.IsActive = false;
-            optionValue.LastUpdated = DateTime.UtcNow;
+            optionValue.LastUpdated = DateTimeOffset.UtcNow;
             optionValue.LastModifiedBy = username; // Set the modifier from JWT claim
 
             _context.OptionValues.Update(optionValue);
