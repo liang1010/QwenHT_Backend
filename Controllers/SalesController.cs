@@ -205,15 +205,18 @@ namespace QwenHT.Controllers
             return Ok(response);
         }
 
-        // GET api/sales/inquiry - Retrieve sales records for inquiry with virtual scrolling support
+        // GET api/sales/inquiry - Retrieve sales records for inquiry with pagination support
         [HttpGet("sales/inquiry")]
-        public async Task<ActionResult<PagedResponse<SalesInquiryDto>>> GetSalesInquiry(
+        public async Task<ActionResult<SalesInquiryPagedResponse>> GetSalesInquiry(
             [FromQuery] DateTime? startDate = null,
             [FromQuery] DateTime? endDate = null,
             [FromQuery] string? outlet = null,
-            [FromQuery] int offset = 0,
-            [FromQuery] int limit = 20)
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
         {
+            // Use page/pageSize if provided and valid, otherwise fall back to offset/limit
+            bool usePageBasedPagination = page >= 1 && pageSize > 0;
+
             var query = _context.Sales
                 .Include(s => s.Staff)
                 .Include(s => s.Menu)
@@ -241,47 +244,79 @@ namespace QwenHT.Controllers
             // Count total records for pagination
             var totalRecords = await query.CountAsync();
 
-            // Apply ordering and pagination
-            var salesRecords = await query
-                .OrderByDescending(s => s.SalesDate)
-                .ThenByDescending(s => s.CreatedAt)
-                .Skip(offset)
-                .Take(limit)
-                .Select(s => new SalesInquiryDto
+            // Calculate aggregates for the entire filtered dataset
+            var aggregates = await query
+                .GroupBy(s => 1) // Group all records together to get overall aggregates
+                .Select(g => new
                 {
-                    Id = s.Id,
-                    SalesDate = s.SalesDate,
-                    StaffId = s.StaffId,
-                    StaffName = s.Staff.FullName,
-                    Outlet = s.Outlet,
-                    OutletName = s.Outlet, // In a real scenario, this would come from an Outlet entity
-                    MenuId = s.MenuId,
-                    MenuDescription = s.Menu.Description,
-                    Price = s.Price,
-                    BodyMins = s.Menu.BodyMins,
-                    FootMins = s.Menu.FootMins,
-                    StaffCommission = s.StaffCommission,
-                    ExtraCommission = s.ExtraCommission,
-                    Remark = s.Remark,
-                    Request = s.Request ?? false,
-                    FootCream = s.FootCream ?? false,
-                    Oil = s.Oil ?? false
+                    TotalPrice = g.Sum(s => s.Price),
+                    TotalBodyMins = g.Sum(s => s.Menu.BodyMins),
+                    TotalFootMins = g.Sum(s => s.Menu.FootMins),
+                    TotalStaffCommission = g.Sum(s => s.StaffCommission),
+                    TotalExtraCommission = g.Sum(s => s.ExtraCommission),
+                    TotalRequest = g.Count(s => s.Request == true),
+                    TotalFootCream = g.Count(s => s.FootCream == true),
+                    TotalOil = g.Count(s => s.Oil == true),
                 })
-                .ToListAsync();
+                .FirstOrDefaultAsync();
 
-            var response = new PagedResponse<SalesInquiryDto>
-            {
-                Data = salesRecords,
-                TotalCount = totalRecords,
-                Offset = offset,
-                Limit = limit
-            };
+            // Apply ordering
+            var orderedQuery = query
+                .OrderBy(s => s.SalesDate)
+                .ThenBy(s=>s.Staff.NickName);
 
-            return Ok(response);
+            // Apply pagination based on the selected method
+            List<SalesInquiryDto> salesRecords;
+                salesRecords = await orderedQuery
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(s => new SalesInquiryDto
+                    {
+                        Id = s.Id,
+                        SalesDate = s.SalesDate,
+                        StaffId = s.StaffId,
+                        StaffName = s.Staff.NickName,
+                        Outlet = s.Outlet,
+                        OutletName = s.Outlet, // In a real scenario, this would come from an Outlet entity
+                        MenuId = s.MenuId,
+                        MenuDescription = s.Menu.Code,
+                        Price = s.Price,
+                        BodyMins = s.Menu.BodyMins,
+                        FootMins = s.Menu.FootMins,
+                        StaffCommission = s.StaffCommission,
+                        ExtraCommission = s.ExtraCommission,
+                        Remark = s.Remark,
+                        Request = s.Request ?? false,
+                        FootCream = s.FootCream ?? false,
+                        Oil = s.Oil ?? false
+                    })
+                    .ToListAsync();
+
+                // Create response with page-based pagination info and aggregates
+                var pageBasedResponse = new SalesInquiryPagedResponse
+                {
+                    Data = salesRecords,
+                    TotalCount = totalRecords,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalPages = (int)Math.Ceiling((double)totalRecords / pageSize),
+                    // Aggregates for the entire filtered dataset
+                    AggregatePrice = aggregates?.TotalPrice ?? 0,
+                    AggregateBodyMins = aggregates?.TotalBodyMins ?? 0,
+                    AggregateFootMins = aggregates?.TotalFootMins ?? 0,
+                    AggregateStaffCommission = aggregates?.TotalStaffCommission ?? 0,
+                    AggregateExtraCommission = aggregates?.TotalExtraCommission ?? 0,
+                    AggregateRequest = aggregates?.TotalRequest ?? 0,
+                    AggregateFootCream = aggregates?.TotalFootCream ?? 0,
+                    AggregateOil = aggregates?.TotalOil ?? 0,
+                };
+
+                return Ok(pageBasedResponse);
+           
         }
 
         // PUT api/sales/{id} - Update an existing sales record
-        [HttpPut("sales/{id}")]
+        [HttpPost("sales/{id}")]
         public async Task<ActionResult<Sales>> UpdateSales(Guid id, [FromBody] UpdateSalesRequest request)
         {
             if (!ModelState.IsValid)
@@ -316,10 +351,6 @@ namespace QwenHT.Controllers
             }
 
             // Update the sales record
-            sales.SalesDate = request.SalesDate;
-            sales.StaffId = request.StaffId;
-            sales.Outlet = request.Outlet;
-            sales.MenuId = request.MenuId;
             sales.Request = request.Request;
             sales.FootCream = request.FootCream;
             sales.Oil = request.Oil;
@@ -342,7 +373,7 @@ namespace QwenHT.Controllers
         }
 
         // DELETE api/sales/{id} - Delete a sales record
-        [HttpDelete("sales/{id}")]
+        [HttpPost("sales/{id}/delete")]
         public async Task<IActionResult> DeleteSales(Guid id)
         {
             var sales = await _context.Sales.FindAsync(id);
@@ -406,6 +437,24 @@ namespace QwenHT.Controllers
         public int TotalCount { get; set; }
         public int Offset { get; set; }
         public int Limit { get; set; }
+    }
+
+    public class SalesInquiryPagedResponse
+    {
+        public List<SalesInquiryDto> Data { get; set; } = new();
+        public int TotalCount { get; set; }
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+        public int TotalPages { get; set; }
+        // Aggregates for the entire filtered dataset (not just the current page)
+        public decimal? AggregatePrice { get; set; }
+        public int? AggregateBodyMins { get; set; }
+        public int? AggregateFootMins { get; set; }
+        public decimal? AggregateStaffCommission { get; set; }
+        public decimal? AggregateExtraCommission { get; set; }
+        public int? AggregateRequest { get; set; }
+        public int? AggregateFootCream { get; set; }
+        public int? AggregateOil { get; set; }
     }
 
     public class ActiveStaffDto
