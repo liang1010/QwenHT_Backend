@@ -103,6 +103,8 @@ namespace QwenHT.Services
             Guid MenuGuid = Guid.NewGuid();
             Guid KeyInGuid = Guid.NewGuid();
             Guid SalesGuid = Guid.NewGuid();
+            Guid SalesInquiryGuid = Guid.NewGuid();
+            Guid SalesSammaryGuid = Guid.NewGuid();
 
             // Seed navigation items if they don't exist
             if (!context.NavigationItems.AsNoTracking().Any())
@@ -219,7 +221,7 @@ namespace QwenHT.Services
                         Order = 5,
                         IsVisible = true,
                         ParentId = ManageGuid // Manage
-                    }, 
+                    },
                     new NavigationItem
                     {
                         Id=MenuGuid,
@@ -233,10 +235,30 @@ namespace QwenHT.Services
                     new NavigationItem
                     {
                         Id=KeyInGuid,
-                        Name = "Key-In Sales",
-                        Route = "/app/sales",
+                        Name = "Sales Key In",
+                        Route = "/app/sales/key-in",
                         Icon = "pi pi-fw pi-credit-card",
                         Order = 1,
+                        IsVisible = true,
+                        ParentId = SalesGuid // Home
+                    },
+                    new NavigationItem
+                    {
+                        Id=SalesInquiryGuid,
+                        Name = "Sales Inquiry",
+                        Route = "/app/sales/inquiry",
+                        Icon = "pi pi-fw pi-credit-card",
+                        Order = 2,
+                        IsVisible = true,
+                        ParentId = SalesGuid // Home
+                    },
+                    new NavigationItem
+                    {
+                        Id=SalesSammaryGuid,
+                        Name = "Sales Summary",
+                        Route = "/app/sales/summary",
+                        Icon = "pi pi-fw pi-credit-card",
+                        Order = 2,
                         IsVisible = true,
                         ParentId = SalesGuid // Home
                     },
@@ -319,6 +341,16 @@ namespace QwenHT.Services
                         RoleName = roleName,
                         NavigationItemId = SalesGuid // Home
                     });
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = SalesInquiryGuid // Home
+                    });
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = SalesSammaryGuid // Home
+                    });
                 }
                 await context.SaveChangesAsync();
 
@@ -372,6 +404,6 @@ namespace QwenHT.Services
                 await context.SaveChangesAsync();
             }
         }
-        
+
     }
 }

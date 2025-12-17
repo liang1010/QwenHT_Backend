@@ -263,56 +263,56 @@ namespace QwenHT.Controllers
             // Apply ordering
             var orderedQuery = query
                 .OrderBy(s => s.SalesDate)
-                .ThenBy(s=>s.Staff.NickName);
+                .ThenBy(s => s.Staff.NickName);
 
             // Apply pagination based on the selected method
             List<SalesInquiryDto> salesRecords;
-                salesRecords = await orderedQuery
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .Select(s => new SalesInquiryDto
-                    {
-                        Id = s.Id,
-                        SalesDate = s.SalesDate,
-                        StaffId = s.StaffId,
-                        StaffName = s.Staff.NickName,
-                        Outlet = s.Outlet,
-                        OutletName = s.Outlet, // In a real scenario, this would come from an Outlet entity
-                        MenuId = s.MenuId,
-                        MenuDescription = s.Menu.Code,
-                        Price = s.Price,
-                        BodyMins = s.Menu.BodyMins,
-                        FootMins = s.Menu.FootMins,
-                        StaffCommission = s.StaffCommission,
-                        ExtraCommission = s.ExtraCommission,
-                        Remark = s.Remark,
-                        Request = s.Request ?? false,
-                        FootCream = s.FootCream ?? false,
-                        Oil = s.Oil ?? false
-                    })
-                    .ToListAsync();
-
-                // Create response with page-based pagination info and aggregates
-                var pageBasedResponse = new SalesInquiryPagedResponse
+            salesRecords = await orderedQuery
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(s => new SalesInquiryDto
                 {
-                    Data = salesRecords,
-                    TotalCount = totalRecords,
-                    Page = page,
-                    PageSize = pageSize,
-                    TotalPages = (int)Math.Ceiling((double)totalRecords / pageSize),
-                    // Aggregates for the entire filtered dataset
-                    AggregatePrice = aggregates?.TotalPrice ?? 0,
-                    AggregateBodyMins = aggregates?.TotalBodyMins ?? 0,
-                    AggregateFootMins = aggregates?.TotalFootMins ?? 0,
-                    AggregateStaffCommission = aggregates?.TotalStaffCommission ?? 0,
-                    AggregateExtraCommission = aggregates?.TotalExtraCommission ?? 0,
-                    AggregateRequest = aggregates?.TotalRequest ?? 0,
-                    AggregateFootCream = aggregates?.TotalFootCream ?? 0,
-                    AggregateOil = aggregates?.TotalOil ?? 0,
-                };
+                    Id = s.Id,
+                    SalesDate = s.SalesDate,
+                    StaffId = s.StaffId,
+                    StaffName = s.Staff.NickName,
+                    Outlet = s.Outlet,
+                    OutletName = s.Outlet, // In a real scenario, this would come from an Outlet entity
+                    MenuId = s.MenuId,
+                    MenuDescription = s.Menu.Code,
+                    Price = s.Price,
+                    BodyMins = s.Menu.BodyMins,
+                    FootMins = s.Menu.FootMins,
+                    StaffCommission = s.StaffCommission,
+                    ExtraCommission = s.ExtraCommission,
+                    Remark = s.Remark,
+                    Request = s.Request ?? false,
+                    FootCream = s.FootCream ?? false,
+                    Oil = s.Oil ?? false
+                })
+                .ToListAsync();
 
-                return Ok(pageBasedResponse);
-           
+            // Create response with page-based pagination info and aggregates
+            var pageBasedResponse = new SalesInquiryPagedResponse
+            {
+                Data = salesRecords,
+                TotalCount = totalRecords,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling((double)totalRecords / pageSize),
+                // Aggregates for the entire filtered dataset
+                AggregatePrice = aggregates?.TotalPrice ?? 0,
+                AggregateBodyMins = aggregates?.TotalBodyMins ?? 0,
+                AggregateFootMins = aggregates?.TotalFootMins ?? 0,
+                AggregateStaffCommission = aggregates?.TotalStaffCommission ?? 0,
+                AggregateExtraCommission = aggregates?.TotalExtraCommission ?? 0,
+                AggregateRequest = aggregates?.TotalRequest ?? 0,
+                AggregateFootCream = aggregates?.TotalFootCream ?? 0,
+                AggregateOil = aggregates?.TotalOil ?? 0,
+            };
+
+            return Ok(pageBasedResponse);
+
         }
 
         // PUT api/sales/{id} - Update an existing sales record
@@ -392,6 +392,60 @@ namespace QwenHT.Controllers
             return Ok(new { message = "Sales record deleted successfully" });
         }
 
+        // GET api/sales/summary - Retrieve sales summary grouped by menu code and description
+        [HttpGet("sales/summary")]
+        public async Task<ActionResult<IEnumerable<SalesSummaryDto>>> GetSalesSummary(
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] string? category = null,
+            [FromQuery] string? outlet = null)
+        {
+            var query = _context.Sales
+                .Include(s => s.Menu)
+                .Where(s => s.Status == 1) // Only active sales
+                .AsQueryable();
+
+            // Apply filters if provided
+            if (startDate.HasValue)
+            {
+                query = query.Where(s => s.SalesDate >= startDate.Value.Date);
+            }
+
+            if (endDate.HasValue)
+            {
+                query = query.Where(s => s.SalesDate <= endDate.Value.Date.AddDays(1).AddTicks(-1)); // Include the full day
+            }
+
+            if (!string.IsNullOrEmpty(outlet) && outlet != "ALL")
+            {
+                query = query.Where(s => s.Outlet == outlet);
+            }
+
+
+            if (!string.IsNullOrEmpty(category) && category != "ALL")
+            {
+                query = query.Where(s => s.Menu.Category == category);
+            }
+            // Join with menus and filter by category
+
+            // Group by menu code, description, and price to get summary data
+            var summaryData = await query
+                .GroupBy(s => new { s.Menu.Code, s.Menu.Description, s.Price })
+                .Select(g => new SalesSummaryDto
+                {
+                    Code = g.Key.Code,
+                    Description = g.Key.Description,
+                    Price = g.Key.Price,
+                    SaleCount = g.Count(),
+                    TotalSales = g.Sum(s => s.Price)
+                })
+                .OrderByDescending(s => s.SaleCount)
+                .ThenByDescending(s => s.Code) // Order by sale count descending
+                .ToListAsync();
+
+            return Ok(summaryData);
+        }
+
     }
 
     // DTO for sales inquiry response
@@ -455,6 +509,15 @@ namespace QwenHT.Controllers
         public int? AggregateRequest { get; set; }
         public int? AggregateFootCream { get; set; }
         public int? AggregateOil { get; set; }
+    }
+
+    public class SalesSummaryDto
+    {
+        public string Code { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public int SaleCount { get; set; }
+        public decimal TotalSales { get; set; }
     }
 
     public class ActiveStaffDto
