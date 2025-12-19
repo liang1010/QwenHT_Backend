@@ -33,148 +33,220 @@ namespace QwenHT.Controllers
 
         // GET api/commission/therapist - Retrieve therapist commission data (grouped by date and menu code)
         [HttpGet("therapist")]
-        public async Task<ActionResult<IEnumerable<TherapistCommissionDto>>> GetTherapistCommission(
+        public async Task<ActionResult<FullTherapistCommissionDto>> GetTherapistCommission(
             [FromQuery] Guid staffId,
             [FromQuery] DateTime? startDate = null,
             [FromQuery] DateTime? endDate = null)
         {
-            var query = _context.Sales
-                .Include(s => s.Menu)
-                .Where(s => s.StaffId == staffId && s.Status == 1) // Filter by staff and active sales
-                .AsQueryable();
+            // Fetch all required sales data in **one query**
+            var salesData = await GetSalesDataAsync(staffId, startDate, endDate);
 
-            // Apply date filters if provided
-            if (startDate.HasValue)
+            // Group main result
+            var groupedCommissions = GroupSalesByDateAndMenu(salesData);
+
+            var result = new FullTherapistCommissionDto
             {
-                query = query.Where(s => s.SalesDate >= startDate.Value);
+                Commissions = groupedCommissions
+            };
+
+            var staffCompensation = await _context.StaffCompensations
+                .FirstOrDefaultAsync(x => x.StaffId == staffId);
+
+            if (staffCompensation == null)
+                return Ok(result);
+
+            // Set common flags
+            result.IsGuaranteeIncome = staffCompensation.IsGuaranteeIncome;
+            result.IsRate = staffCompensation.IsRate;
+            result.IsCommissionPercentage = staffCompensation.IsCommissionPercentage;
+
+            // Only calculate extra details if needed
+            if (staffCompensation.IsRate)
+            {
+                result.RateBase = GetRateBaseDto(groupedCommissions, staffCompensation, startDate);
+
+                if (startDate.HasValue && startDate.Value.Day != 1)
+                {
+                    // Fetch full month data for guarantee calculation
+                    var startOfMonth = new DateTime(startDate.Value.Year, startDate.Value.Month, 1);
+                    var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1); // Last day of month
+                    var fullMonthSales = await GetSalesDataAsync(staffId, startOfMonth, endOfMonth);
+                    var fullMonthGrouped = GroupSalesByDateAndMenu(fullMonthSales);
+                    result.RateBase.AllPeriodHrs = (fullMonthGrouped.Sum(x => x.FootMins) + fullMonthGrouped.Sum(x => x.BodyMins)) / 60.00;
+                }
             }
+            else if (staffCompensation.IsCommissionPercentage)
+            {
+                result.CommissionPercentage = GetCommissionPercentageDto(groupedCommissions, staffCompensation, startDate);
+
+                if (startDate.HasValue && startDate.Value.Day != 1)
+                {
+                    // Fetch full month data for guarantee calculation
+                    var startOfMonth = new DateTime(startDate.Value.Year, startDate.Value.Month, 1);
+                    var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1); // Last day of month
+                    var fullMonthSales = await GetSalesDataAsync(staffId, startOfMonth, endOfMonth);
+                    var fullMonthGrouped = GroupSalesByDateAndMenu(fullMonthSales);
+                    result.CommissionPercentage.AllPeriodHrs = (fullMonthGrouped.Sum(x => x.FootMins) + fullMonthGrouped.Sum(x => x.BodyMins)) / 60.00;
+                }
+            }
+
+            // Guarantee income logic (only if start date is not 1st and guarantee is enabled)
+            if (staffCompensation.IsGuaranteeIncome && startDate.HasValue && startDate.Value.Day != 1)
+            {
+                // Fetch full month data for guarantee calculation
+                var startOfMonth = new DateTime(startDate.Value.Year, startDate.Value.Month, 1);
+                var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1); // Last day of month
+
+                var fullMonthSales = await GetSalesDataAsync(staffId, startOfMonth, endOfMonth);
+                var fullMonthGrouped = GroupSalesByDateAndMenu(fullMonthSales);
+
+                result.GuaranteeIncome = CalculateGuaranteeIncome(fullMonthGrouped, staffCompensation, endDate ?? endOfMonth);
+            }
+
+            return Ok(result);
+        }
+
+        private async Task<List<SalesCommissionDto>> GetSalesDataAsync(Guid staffId, DateTime? startDate, DateTime? endDate)
+        {
+            var query = _context.Sales
+           .Include(s => s.Menu)
+           .Where(s => s.StaffId == staffId && s.Status == 1) // Filter by staff and active sales
+           .AsQueryable();
+
+            if (startDate.HasValue)
+                query = query.Where(s => s.SalesDate >= startDate.Value);
 
             if (endDate.HasValue)
-            {
-                // End date should be exclusive (before next day)
-                query = query.Where(s => s.SalesDate < endDate.Value.AddDays(1));
-            }
+                query = query.Where(s => s.SalesDate <= endDate.Value); // Use <= since we normalized to date
 
-            // Group by date and menu code to get aggregated values
-            // We need to convert in memory since Entity Framework can't translate s.SalesDate.DateTime.Date
-            var rawData = await query
-                .Select(s => new
+            var data = await query
+                .Select(s => new SalesCommissionDto
                 {
-                    SalesDate = s.SalesDate, // Convert to date only
+                    SalesDate = s.SalesDate,
                     MenuCode = s.Menu.Code,
                     FootMins = s.Menu.FootMins,
                     BodyMins = s.Menu.BodyMins,
                     StaffCommission = s.StaffCommission,
-                    ExtraCommission = s.ExtraCommission
+                    ExtraCommission = s.ExtraCommission,
+                    Price = s.Price
                 })
                 .ToListAsync();
 
-            // Group in memory by date and menu code
-            var groupedData = rawData
-                .GroupBy(s => new { Date = s.SalesDate, Code = s.MenuCode })
+            return data;
+        }
+        private RateBaseDto GetRateBaseDto(
+    List<TherapistCommissionDto> commissions,
+    StaffCompensation comp,
+    DateTime? startDate)
+        {
+            var response = new RateBaseDto
+            {
+                SelectedPeriodHrs = (commissions.Sum(x => x.FootMins) + commissions.Sum(x => x.BodyMins)) / 60.00,
+                TotalFootMins = commissions.Sum(x => x.FootMins),
+                TotalBodyMins = commissions.Sum(x => x.BodyMins),
+                TotalStaffCommission = commissions.Sum(x => x.StaffCommission),
+                TotalExtraCommission = commissions.Sum(x => x.ExtraCommission)
+            };
+
+            response.TotalFootCommission = comp.FootRatePerHour * (response.TotalFootMins / 60m);
+            response.TotalBodyCommission = comp.BodyRatePerHour * (response.TotalBodyMins / 60m); // Fixed: was FootRate!
+            response.TotalCommission = response.TotalFootCommission + response.TotalBodyCommission
+                                       + response.TotalStaffCommission + response.TotalExtraCommission;
+
+            return response;
+        }
+
+        private CommissionPercentageDto GetCommissionPercentageDto(
+            List<TherapistCommissionDto> commissions,
+            StaffCompensation comp,
+            DateTime? startDate)
+        {
+            var response = new CommissionPercentageDto
+            {
+                SelectedPeriodHrs = (commissions.Sum(x => x.FootMins) + commissions.Sum(x => x.BodyMins)) / 60.00,
+                TotalStaffCommission = commissions.Sum(x => x.StaffCommission),
+                TotalExtraCommission = commissions.Sum(x => x.ExtraCommission),
+                TotalPrice = commissions.Sum(x => x.Price)
+            };
+
+            response.TotalCommission = response.TotalPrice * (comp.CommissionBasePercentage / 100m);
+            return response;
+        }
+
+        private GuaranteeIncomeDto CalculateGuaranteeIncome(
+    List<TherapistCommissionDto> fullMonthData,
+    StaffCompensation comp,
+    DateTime endDate)
+        {
+            var endOfMonth = new DateTime(endDate.Year, endDate.Month, DateTime.DaysInMonth(endDate.Year, endDate.Month));
+            var midDate = new DateTime(endDate.Year, endDate.Month, 15);
+
+            var firstHalf = fullMonthData.Where(x => x.SalesDate <= midDate).ToList();
+            var secondHalf = fullMonthData.Where(x => x.SalesDate > midDate && x.SalesDate <= endDate).ToList();
+
+            decimal firstCommission, secondCommission;
+
+            if (comp.IsRate)
+            {
+                var first = GetRateBaseDto(firstHalf, comp, null);
+                var second = GetRateBaseDto(secondHalf, comp, null);
+                firstCommission = first.TotalCommission;
+                secondCommission = second.TotalCommission;
+            }
+            else if (comp.IsCommissionPercentage)
+            {
+                var first = GetCommissionPercentageDto(firstHalf, comp, null);
+                var second = GetCommissionPercentageDto(secondHalf, comp, null);
+                firstCommission = first.TotalCommission;
+                secondCommission = second.TotalCommission;
+            }
+            else
+            {
+                firstCommission = firstHalf.Sum(x => x.StaffCommission + x.ExtraCommission);
+                secondCommission = secondHalf.Sum(x => x.StaffCommission + x.ExtraCommission);
+            }
+
+            var total = firstCommission + secondCommission;
+            var guaranteePaid = comp.GuaranteeIncome > total ? comp.GuaranteeIncome - total : 0;
+
+            return new GuaranteeIncomeDto
+            {
+                FirstPeriodCommission = firstCommission,
+                SecondPeriodCommission = secondCommission,
+                TotalCommission = total,
+                GuaranteeIncomePaid = guaranteePaid
+            };
+        }
+        private List<TherapistCommissionDto> GroupSalesByDateAndMenu(List<SalesCommissionDto> rawData)
+        {
+            return rawData
+                .GroupBy(s => new { Date = s.SalesDate.Date, Code = s.MenuCode })
                 .Select(g => new TherapistCommissionDto
                 {
-                    Id = Guid.NewGuid().ToString(), // We'll generate a random ID for the grouped record
+                    Id = Guid.NewGuid().ToString(),
                     SalesDate = g.Key.Date,
                     MenuCode = g.Key.Code,
                     FootMins = g.Sum(s => s.FootMins),
                     BodyMins = g.Sum(s => s.BodyMins),
                     StaffCommission = g.Sum(s => s.StaffCommission),
-                    ExtraCommission = g.Sum(s => s.ExtraCommission)
-                })
-                .ToList();
-
-            // Order by sales date
-            var orderedData = groupedData.OrderBy(s => s.SalesDate).ToList();
-
-            return Ok(orderedData);
-        }
-
-        // GET api/commission/therapist/pdf - Generate therapist commission PDF report (grouped by date and menu code)
-        [HttpGet("therapist/pdf")]
-        public async Task<IActionResult> GetTherapistCommissionPdf(
-            [FromQuery] Guid staffId,
-            [FromQuery] DateTime? startDate = null,
-            [FromQuery] DateTime? endDate = null)
-        {
-            // Get staff name for the report
-            var staff = await _context.Staff.FindAsync(staffId);
-            if (staff == null)
-            {
-                return NotFound(new { error = "Staff not found" });
-            }
-
-            // Get commission data (same query as the API endpoint)
-            var query = _context.Sales
-                .Include(s => s.Menu)
-                .Where(s => s.StaffId == staffId && s.Status == 1) // Filter by staff and active sales
-                .AsQueryable();
-
-            // Apply date filters if provided
-            if (startDate.HasValue)
-            {
-                query = query.Where(s => s.SalesDate >= startDate.Value);
-            }
-
-            if (endDate.HasValue)
-            {
-                // End date should be exclusive (before next day)
-                query = query.Where(s => s.SalesDate < endDate.Value.AddDays(1));
-            }
-
-            // Group by date and menu code to get aggregated values
-            // We need to convert in memory since Entity Framework can't translate s.SalesDate.DateTime.Date
-            var rawData = await query
-                .Select(s => new
-                {
-                    SalesDate = s.SalesDate, // Convert to date only
-                    MenuCode = s.Menu.Code,
-                    FootMins = s.Menu.FootMins,
-                    BodyMins = s.Menu.BodyMins,
-                    StaffCommission = s.StaffCommission,
-                    ExtraCommission = s.ExtraCommission
-                })
-                .ToListAsync();
-
-            // Group in memory by date and menu code
-            var groupedData = rawData
-                .GroupBy(s => new { Date = s.SalesDate, Code = s.MenuCode })
-                .Select(g => new
-                {
-                    SalesDate = g.Key.Date,
-                    MenuCode = g.Key.Code,
-                    TotalFootMins = g.Sum(s => s.FootMins),
-                    TotalBodyMins = g.Sum(s => s.BodyMins),
-                    TotalStaffCommission = g.Sum(s => s.StaffCommission),
-                    TotalExtraCommission = g.Sum(s => s.ExtraCommission)
-                })
-                .ToList();
-
-            // Map to report item and order by sales date in memory
-            var reportItems = groupedData
-                .Select(s => new TherapistCommissionReportItem
-                {
-                    SalesDate = s.SalesDate,
-                    MenuCode = s.MenuCode,
-                    FootMins = s.TotalFootMins,
-                    BodyMins = s.TotalBodyMins,
-                    StaffCommission = s.TotalStaffCommission,
-                    ExtraCommission = s.TotalExtraCommission
+                    ExtraCommission = g.Sum(s => s.ExtraCommission),
+                    Price = g.Sum(s => s.Price)
                 })
                 .OrderBy(s => s.SalesDate)
                 .ToList();
-
-            // Generate PDF
-            var pdfBytes = PdfGenerator.GenerateTherapistCommissionReport(
-                staff.NickName ?? staff.FullName,
-                startDate ?? DateTime.Now.AddDays(-30), // Default to 30 days if not provided
-                endDate ?? DateTime.Now,
-                reportItems);
-
-            // Return PDF as file
-            var fileName = $"Therapist-Commission-{(staff.NickName ?? staff.FullName).Replace(" ", "_")}-{(startDate?.ToString("yyyyMMdd") ?? DateTime.Now.ToString("yyyyMMdd"))}-{(endDate?.ToString("yyyyMMdd") ?? DateTime.Now.ToString("yyyyMMdd"))}.pdf";
-            return File(pdfBytes, "application/pdf", fileName);
         }
+
+    }
+
+    public class SalesCommissionDto
+    {
+        public DateTimeOffset SalesDate { get; set; }
+        public string MenuCode { get; set; }
+        public int FootMins { get; set; }
+        public int BodyMins { get; set; }
+        public decimal StaffCommission { get; set; }
+        public decimal ExtraCommission { get; set; }
+        public decimal Price { get; set; }
     }
 
     public class TherapistCommissionDto
@@ -186,5 +258,58 @@ namespace QwenHT.Controllers
         public int BodyMins { get; set; }
         public decimal StaffCommission { get; set; }
         public decimal ExtraCommission { get; set; }
+        public decimal Price { get; set; }
+    }
+    public class IncentiveDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public DateTimeOffset IncentiveDate { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public int Remark { get; set; }
+        public decimal Amount { get; set; }
+    }
+
+    public class FullTherapistCommissionDto
+    {
+        public List<TherapistCommissionDto> Commissions { get; set; }
+        public List<IncentiveDto> Incentives { get; set; }
+        public bool IsRate { get; set; }
+        public RateBaseDto RateBase { get; set; }
+        public bool IsCommissionPercentage { get; set; }
+        public CommissionPercentageDto CommissionPercentage { get; set; }
+        public bool IsGuaranteeIncome { get; set; }
+        public GuaranteeIncomeDto GuaranteeIncome { get; set; }
+
+    }
+
+    public class GuaranteeIncomeDto
+    {
+        public decimal FirstPeriodCommission { get; set; }
+        public decimal SecondPeriodCommission { get; set; }
+        public decimal TotalCommission { get; set; }
+        public decimal GuaranteeIncomePaid { get; set; }
+    }
+
+    public class RateBaseDto
+    {
+        public double SelectedPeriodHrs { get; set; }
+        public double AllPeriodHrs { get; set; }
+        public int TotalFootMins { get; set; }
+        public decimal TotalFootCommission { get; set; }
+        public int TotalBodyMins { get; set; }
+        public decimal TotalBodyCommission { get; set; }
+        public decimal TotalStaffCommission { get; set; }
+        public decimal TotalExtraCommission { get; set; }
+        public decimal TotalCommission { get; set; }
+    }
+
+    public class CommissionPercentageDto
+    {
+        public double SelectedPeriodHrs { get; set; }
+        public double AllPeriodHrs { get; set; }
+        public decimal TotalStaffCommission { get; set; }
+        public decimal TotalExtraCommission { get; set; }
+        public decimal TotalPrice { get; set; }
+        public decimal TotalCommission { get; set; }
     }
 }

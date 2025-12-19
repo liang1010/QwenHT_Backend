@@ -62,8 +62,8 @@ namespace QwenHT.Models
         [Required, MaxLength(50)]
         public string Type { get; set; } = default!; // e.g., "Therapist", "Consultant"
 
-        public DateOnly? CheckIn { get; set; }
-        public DateOnly? CheckOut { get; set; }
+        public DateTimeOffset? CheckIn { get; set; }
+        public DateTimeOffset? CheckOut { get; set; }
     }
 
     public class StaffCompensation

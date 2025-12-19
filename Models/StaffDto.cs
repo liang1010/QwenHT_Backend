@@ -114,6 +114,14 @@ namespace QwenHT.Models
         public string? AccountHolderName { get; set; }
 
         public string? AccountNumber { get; set; }
+
+
+        public string? Outlet { get; set; }
+        public string? Type { get; set; }
+
+        public DateTimeOffset? CheckIn { get; set; }
+
+        public DateTimeOffset? CheckOut { get; set; }
     }
 
     public class UpdateStaffDto

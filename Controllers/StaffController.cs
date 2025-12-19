@@ -104,6 +104,32 @@ namespace QwenHT.Controllers
                 await _context.SaveChangesAsync();
             }
 
+            var employment = new StaffEmployment
+            {
+                Id = Guid.NewGuid(),
+                StaffId = staff.Id,
+                Outlet = staffDto.Outlet,
+                Type = staffDto.Type,
+                CheckIn = staffDto.CheckIn,
+                CheckOut = staffDto.CheckOut,
+
+            };
+            _ = _context.StaffEmployments.Add(employment);
+            await _context.SaveChangesAsync();
+
+
+            var bank = new BankAccount
+            {
+                Id = Guid.NewGuid(),
+                StaffId = staff.Id,
+                BankName = staffDto.BankName,
+                AccountHolderName = staffDto.AccountHolderName,
+                AccountNumber = staffDto.AccountNumber
+
+            };
+            _ = _context.BankAccounts.Add(bank);
+            await _context.SaveChangesAsync();
+
             var createdStaffDto = MapToDto(staff);
             return CreatedAtAction(nameof(GetStaff), new { id = staff.Id }, createdStaffDto);
         }
@@ -151,8 +177,8 @@ namespace QwenHT.Controllers
                         StaffId = staff.Id,
                         Outlet = staffDto.Outlet ?? "Default",
                         Type = staffDto.Type ?? "Therapist",
-                        CheckIn = staffDto.CheckIn.HasValue ? DateOnly.FromDateTime(DateTime.SpecifyKind(staffDto.CheckIn.Value.DateTime, DateTimeKind.Utc)) : null,
-                        CheckOut = staffDto.CheckOut.HasValue ? DateOnly.FromDateTime(DateTime.SpecifyKind(staffDto.CheckOut.Value.DateTime, DateTimeKind.Utc)) : null
+                        CheckIn = staffDto.CheckIn,
+                        CheckOut = staffDto.CheckOut
                     };
                     _ = _context.StaffEmployments.Add(newEmployment);
                 }
@@ -161,8 +187,8 @@ namespace QwenHT.Controllers
                     // Update existing employment record
                     existingEmployment.Outlet = !string.IsNullOrEmpty(staffDto.Outlet) ? staffDto.Outlet : existingEmployment.Outlet;
                     existingEmployment.Type = !string.IsNullOrEmpty(staffDto.Type) ? staffDto.Type : existingEmployment.Type;
-                    existingEmployment.CheckIn = staffDto.CheckIn.HasValue ? DateOnly.FromDateTime(DateTime.SpecifyKind(staffDto.CheckIn.Value.DateTime, DateTimeKind.Utc)) : existingEmployment.CheckIn;
-                    existingEmployment.CheckOut = staffDto.CheckOut.HasValue ? DateOnly.FromDateTime(DateTime.SpecifyKind(staffDto.CheckOut.Value.DateTime, DateTimeKind.Utc)) : existingEmployment.CheckOut;
+                    existingEmployment.CheckIn = staffDto.CheckIn;
+                    existingEmployment.CheckOut = staffDto.CheckOut;
                 }
             }
 
@@ -359,8 +385,8 @@ namespace QwenHT.Controllers
                 var employment = staff.Employments.First(); // Get the first employment record
                 staffDto.Outlet = employment.Outlet;
                 staffDto.Type = employment.Type;
-                staffDto.CheckIn = employment.CheckIn.HasValue ? new DateTimeOffset(employment.CheckIn.Value.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero) : null;
-                staffDto.CheckOut = employment.CheckOut.HasValue ? new DateTimeOffset(employment.CheckOut.Value.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero) : null;
+                staffDto.CheckIn = employment.CheckIn;
+                staffDto.CheckOut = employment.CheckOut;
             }
 
             // Add compensation details if they exist
