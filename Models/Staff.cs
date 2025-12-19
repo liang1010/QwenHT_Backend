@@ -73,14 +73,20 @@ namespace QwenHT.Models
         public Guid StaffId { get; set; }
         public Staff Staff { get; set; } = default!;
 
+        public bool IsRate { get; set; } = false;
+
         [Precision(5, 2)]
         public decimal FootRatePerHour { get; set; }
 
         [Precision(5, 2)]
         public decimal BodyRatePerHour { get; set; }
 
+        public bool IsCommissionPercentage { get; set; } = false;
+
         [Range(0, 100)]
         public int CommissionBasePercentage { get; set; }
+
+        public bool IsGuaranteeIncome { get; set; } = false;
 
         [Precision(10, 2)]
         public decimal GuaranteeIncome { get; set; }

@@ -39,11 +39,17 @@ namespace QwenHT.Models
 
         public DateTimeOffset? CheckOut { get; set; }
 
+        public bool? IsRate { get; set; }
+
         public decimal? FootRatePerHour { get; set; }
 
         public decimal? BodyRatePerHour { get; set; }
 
+        public bool? IsCommissionPercentage { get; set; }
+
         public int? CommissionBasePercentage { get; set; }
+
+        public bool? IsGuaranteeIncome { get; set; }
 
         public decimal? GuaranteeIncome { get; set; }
 
@@ -88,6 +94,26 @@ namespace QwenHT.Models
         public string? HostelRoom { get; set; }
 
         public string? Reference { get; set; }
+
+        public bool? IsRate { get; set; }
+
+        public decimal? FootRatePerHour { get; set; }
+
+        public decimal? BodyRatePerHour { get; set; }
+
+        public bool? IsCommissionPercentage { get; set; }
+
+        public int? CommissionBasePercentage { get; set; }
+
+        public bool? IsGuaranteeIncome { get; set; }
+
+        public decimal? GuaranteeIncome { get; set; }
+
+        public string? BankName { get; set; }
+
+        public string? AccountHolderName { get; set; }
+
+        public string? AccountNumber { get; set; }
     }
 
     public class UpdateStaffDto
@@ -125,11 +151,17 @@ namespace QwenHT.Models
 
         public DateTimeOffset? CheckOut { get; set; }
 
+        public bool? IsRate { get; set; }
+
         public decimal? FootRatePerHour { get; set; }
 
         public decimal? BodyRatePerHour { get; set; }
 
+        public bool? IsCommissionPercentage { get; set; }
+
         public int? CommissionBasePercentage { get; set; }
+
+        public bool? IsGuaranteeIncome { get; set; }
 
         public decimal? GuaranteeIncome { get; set; }
 

@@ -83,6 +83,27 @@ namespace QwenHT.Controllers
             _context.Staff.Add(staff);
             await _context.SaveChangesAsync();
 
+            // Add compensation details if provided
+            if (staffDto.FootRatePerHour.HasValue || staffDto.BodyRatePerHour.HasValue ||
+                staffDto.CommissionBasePercentage.HasValue || staffDto.GuaranteeIncome.HasValue ||
+                staffDto.IsRate.HasValue || staffDto.IsCommissionPercentage.HasValue || staffDto.IsGuaranteeIncome.HasValue)
+            {
+                var compensation = new StaffCompensation
+                {
+                    Id = Guid.NewGuid(),
+                    StaffId = staff.Id,
+                    IsRate = staffDto.IsRate ?? false,
+                    FootRatePerHour = staffDto.FootRatePerHour ?? 0,
+                    BodyRatePerHour = staffDto.BodyRatePerHour ?? 0,
+                    IsCommissionPercentage = staffDto.IsCommissionPercentage ?? false,
+                    CommissionBasePercentage = staffDto.CommissionBasePercentage ?? 0,
+                    IsGuaranteeIncome = staffDto.IsGuaranteeIncome ?? false,
+                    GuaranteeIncome = staffDto.GuaranteeIncome ?? 0
+                };
+                _ = _context.StaffCompensations.Add(compensation);
+                await _context.SaveChangesAsync();
+            }
+
             var createdStaffDto = MapToDto(staff);
             return CreatedAtAction(nameof(GetStaff), new { id = staff.Id }, createdStaffDto);
         }
@@ -147,7 +168,8 @@ namespace QwenHT.Controllers
 
             // Update compensation details if provided
             if (staffDto.FootRatePerHour.HasValue || staffDto.BodyRatePerHour.HasValue ||
-                staffDto.CommissionBasePercentage.HasValue || staffDto.GuaranteeIncome.HasValue)
+                staffDto.CommissionBasePercentage.HasValue || staffDto.GuaranteeIncome.HasValue ||
+                staffDto.IsRate.HasValue || staffDto.IsCommissionPercentage.HasValue || staffDto.IsGuaranteeIncome.HasValue)
             {
                 var existingCompensation = staff.Compensations?.FirstOrDefault();
                 if (existingCompensation == null)
@@ -157,9 +179,12 @@ namespace QwenHT.Controllers
                     {
                         Id = Guid.NewGuid(),
                         StaffId = staff.Id,
+                        IsRate = staffDto.IsRate ?? false,
                         FootRatePerHour = staffDto.FootRatePerHour ?? 0,
                         BodyRatePerHour = staffDto.BodyRatePerHour ?? 0,
+                        IsCommissionPercentage = staffDto.IsCommissionPercentage ?? false,
                         CommissionBasePercentage = staffDto.CommissionBasePercentage ?? 0,
+                        IsGuaranteeIncome = staffDto.IsGuaranteeIncome ?? false,
                         GuaranteeIncome = staffDto.GuaranteeIncome ?? 0
                     };
                     _ = _context.StaffCompensations.Add(newCompensation);
@@ -167,9 +192,12 @@ namespace QwenHT.Controllers
                 else
                 {
                     // Update existing compensation record
+                    existingCompensation.IsRate = staffDto.IsRate ?? existingCompensation.IsRate;
                     existingCompensation.FootRatePerHour = staffDto.FootRatePerHour ?? existingCompensation.FootRatePerHour;
                     existingCompensation.BodyRatePerHour = staffDto.BodyRatePerHour ?? existingCompensation.BodyRatePerHour;
+                    existingCompensation.IsCommissionPercentage = staffDto.IsCommissionPercentage ?? existingCompensation.IsCommissionPercentage;
                     existingCompensation.CommissionBasePercentage = staffDto.CommissionBasePercentage ?? existingCompensation.CommissionBasePercentage;
+                    existingCompensation.IsGuaranteeIncome = staffDto.IsGuaranteeIncome ?? existingCompensation.IsGuaranteeIncome;
                     existingCompensation.GuaranteeIncome = staffDto.GuaranteeIncome ?? existingCompensation.GuaranteeIncome;
                 }
             }
@@ -339,9 +367,12 @@ namespace QwenHT.Controllers
             if (staff.Compensations != null && staff.Compensations.Any())
             {
                 var compensation = staff.Compensations.First(); // Get the first compensation record
+                staffDto.IsRate = compensation.IsRate;
                 staffDto.FootRatePerHour = compensation.FootRatePerHour;
                 staffDto.BodyRatePerHour = compensation.BodyRatePerHour;
+                staffDto.IsCommissionPercentage = compensation.IsCommissionPercentage;
                 staffDto.CommissionBasePercentage = compensation.CommissionBasePercentage;
+                staffDto.IsGuaranteeIncome = compensation.IsGuaranteeIncome;
                 staffDto.GuaranteeIncome = compensation.GuaranteeIncome;
             }
 
