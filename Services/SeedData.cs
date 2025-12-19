@@ -105,6 +105,8 @@ namespace QwenHT.Services
             Guid SalesGuid = Guid.NewGuid();
             Guid SalesInquiryGuid = Guid.NewGuid();
             Guid SalesSammaryGuid = Guid.NewGuid();
+            Guid CommissionGuid = Guid.NewGuid();
+            Guid CommissionTherapistGuid = Guid.NewGuid();
 
             // Seed navigation items if they don't exist
             if (!context.NavigationItems.AsNoTracking().Any())
@@ -137,6 +139,15 @@ namespace QwenHT.Services
                         Route = "",
                         Icon = "",
                         Order = 2,
+                        IsVisible = true
+                    },
+                    new NavigationItem
+                    {
+                        Id = CommissionGuid,
+                        Name = "Commission",
+                        Route = "",
+                        Icon = "",
+                        Order = 4,
                         IsVisible = true
                     }
                 };
@@ -261,6 +272,16 @@ namespace QwenHT.Services
                         Order = 2,
                         IsVisible = true,
                         ParentId = SalesGuid // Home
+                    },
+                    new NavigationItem
+                    {
+                        Id=CommissionTherapistGuid,
+                        Name = "Therapist",
+                        Route = "/app/commission/therapist",
+                        Icon = "",
+                        Order = 1,
+                        IsVisible = true,
+                        ParentId = CommissionGuid // Home
                     },
                 };
 

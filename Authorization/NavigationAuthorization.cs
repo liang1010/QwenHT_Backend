@@ -57,9 +57,16 @@ namespace QwenHT.Authorization
                 navigationRoute = "manage/menus";
             else if (requestPath.Contains("/api/dashboard"))
                 navigationRoute = "app/dashboard";
-            else if (requestPath.Contains("/api/sales"))
-                navigationRoute = "app/sales";
+            else if (requestPath.Contains("/api/sales-key-in"))
+                navigationRoute = "app/sales/key-in";
+            else if (requestPath.Contains("/api/sales-inquiry"))
+                navigationRoute = "app/sales/inquiry";
+            else if (requestPath.Contains("/api/sales-summary"))
+                navigationRoute = "app/sales/summary";
+            else if (requestPath.Contains("/api/commission/therapist"))
+                navigationRoute = "app/commission/therapist";
 
+            
             if (!string.IsNullOrEmpty(navigationRoute))
             {
                 // Check if any of the user's roles have access to this navigation item
