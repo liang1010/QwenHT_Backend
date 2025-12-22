@@ -19,82 +19,126 @@ namespace QwenHT.Controllers
         [HttpGet("therapist/pdf")]
         public async Task<IActionResult> GetTherapistCommissionPdf(
             [FromQuery] Guid staffId,
-            [FromQuery] DateTime? startDate = null,
-            [FromQuery] DateTime? endDate = null)
+            [FromQuery] DateTimeOffset? startDate = null,
+            [FromQuery] DateTimeOffset? endDate = null)
         {
-            // Get staff name for the report
-            var staff = await _context.Staff.FindAsync(staffId);
-            if (staff == null)
+
+            var staff = await _context.Staff.Where(x=>x.Id == staffId).FirstOrDefaultAsync();
+            // Step 1: Fetch all required sales data in a single query for efficiency
+            var salesData = await GetSalesDataAsync(staffId, startDate, endDate);
+
+            // Step 2: Group sales by date and menu code to create daily summaries
+            var groupedCommissions = GroupSalesByDateAndMenu(salesData);
+
+            // Step 3: Initialize the main report object with basic commission data
+            var result = new TherapistCommissionReportDto
             {
-                return NotFound(new { error = "Staff not found" });
+                Commissions = groupedCommissions,
+                Incentives = new List<TherapistIncentiveDto>() // Initialize with empty list
+            };
+
+            // Step 4: Retrieve staff compensation settings to determine calculation method
+            var staffCompensation = await _context.StaffCompensations
+                .FirstOrDefaultAsync(x => x.StaffId == staffId);
+
+            // If no compensation setup is found, return basic commission data only
+            if (staffCompensation == null)
+                return Ok(result);
+
+            // Step 5: Set compensation type flags for frontend reference
+            result.IsGuaranteeIncome = staffCompensation.IsGuaranteeIncome;
+            result.IsRate = staffCompensation.IsRate;
+            result.IsCommissionPercentage = staffCompensation.IsCommissionPercentage;
+
+            // Step 6: Calculate compensation details based on staff compensation setup
+            if (staffCompensation.IsRate)
+            {
+                // Calculate rate-based commission details
+                result.RateBase = GetTherapistRateBasedCommissionDto(groupedCommissions, staffCompensation, startDate);
+
+                // If the period doesn't start on the 1st day of the month, calculate full month hours for comparison
+                if (startDate.HasValue && startDate.Value.LocalDateTime.Day != 1)
+                {
+                    var fullMonthHours = await GetFullMonthHoursForComparisonAsync(staffId, startDate.Value);
+                    result.RateBase.AllPeriodHrs = Math.Round(fullMonthHours, 2);
+                }
+            }
+            else if (staffCompensation.IsCommissionPercentage)
+            {
+                // Calculate percentage-based commission details
+                result.CommissionPercentage = GetTherapistPercentageBasedCommissionDto(groupedCommissions, staffCompensation, startDate);
+
+                // If the period doesn't start on the 1st day of the month, calculate full month hours for comparison
+                if (startDate.HasValue && startDate.Value.LocalDateTime.Day != 1)
+                {
+                    var fullMonthHours = await GetFullMonthHoursForComparisonAsync(staffId, startDate.Value);
+                    result.CommissionPercentage.AllPeriodHrs = Math.Round(fullMonthHours, 2);
+                }
             }
 
-            // Get commission data (same query as the API endpoint)
-            var query = _context.Sales
-                .Include(s => s.Menu)
-                .Where(s => s.StaffId == staffId && s.Status == 1) // Filter by staff and active sales
-                .AsQueryable();
-
-            // Apply date filters if provided
-            if (startDate.HasValue)
+            // Step 7: Calculate guarantee income if applicable
+            // Only calculate if guarantee is enabled and the reporting period doesn't start on the 1st of the month
+            if (staffCompensation.IsGuaranteeIncome && startDate.HasValue && startDate.Value.LocalDateTime.Day != 1)
             {
-                query = query.Where(s => s.SalesDate >= startDate.Value);
+                result.GuaranteeIncome = await CalculateTherapistGuaranteeIncomeAsync(staffId, staffCompensation, startDate.Value, endDate);
             }
 
-            if (endDate.HasValue)
+
+            // Step 8: Get Incentive
+            var local = startDate.Value.LocalDateTime;
+            var day = local.Day == 1
+                ? 15
+                : DateTime.DaysInMonth(local.Year, local.Month);
+
+            var incentiveDate = new DateTimeOffset(
+                local.Year,
+                local.Month,
+                day,
+                0, 0, 0,
+                startDate.Value.Offset
+            );
+
+            var incentive = await _context.Incentives.Where(x => x.StaffId == staffId && x.Status == 1 && x.IncentiveDate == incentiveDate).ToListAsync();
+
+
+            if (incentive.Count > 0)
             {
-                // End date should be exclusive (before next day)
-                query = query.Where(s => s.SalesDate < endDate.Value.AddDays(1));
+                result.Incentives = new List<TherapistIncentiveDto>();
+
+                foreach (var item in incentive)
+                {
+
+                    result.Incentives.Add(new TherapistIncentiveDto
+                    {
+                        IncentiveDate = item.IncentiveDate,
+                        Amount = item.Amount,
+                        Description = item.Description,
+                        Id = item.Id,
+                        Remark = item.Remark
+                    });
+                }
+
+
+
+                result.TotalIncentive = result.Incentives.Sum(x => x.Amount);
             }
 
-            // Group by date and menu code to get aggregated values
-            // We need to convert in memory since Entity Framework can't translate s.SalesDate.DateTime.Date
-            var rawData = await query
-                .Select(s => new
-                {
-                    SalesDate = s.SalesDate, // Convert to date only
-                    MenuCode = s.Menu.Code,
-                    FootMins = s.Menu.FootMins,
-                    BodyMins = s.Menu.BodyMins,
-                    StaffCommission = s.StaffCommission,
-                    ExtraCommission = s.ExtraCommission
-                })
-                .ToListAsync();
+            if (result.IsRate)
+            {
+                result.TotalPayout = result.TotalIncentive + result.RateBase.TotalCommission;
+            }
+            else if (result.IsCommissionPercentage)
+            {
 
-            // Group in memory by date and menu code
-            var groupedData = rawData
-                .GroupBy(s => new { Date = s.SalesDate, Code = s.MenuCode })
-                .Select(g => new
-                {
-                    SalesDate = g.Key.Date,
-                    MenuCode = g.Key.Code,
-                    TotalFootMins = g.Sum(s => s.FootMins),
-                    TotalBodyMins = g.Sum(s => s.BodyMins),
-                    TotalStaffCommission = g.Sum(s => s.StaffCommission),
-                    TotalExtraCommission = g.Sum(s => s.ExtraCommission)
-                })
-                .ToList();
-
-            // Map to report item and order by sales date in memory
-            var reportItems = groupedData
-                .Select(s => new TherapistCommissionReportItem
-                {
-                    SalesDate = s.SalesDate,
-                    MenuCode = s.MenuCode,
-                    FootMins = s.TotalFootMins,
-                    BodyMins = s.TotalBodyMins,
-                    StaffCommission = s.TotalStaffCommission,
-                    ExtraCommission = s.TotalExtraCommission
-                })
-                .OrderBy(s => s.SalesDate)
-                .ToList();
+                result.TotalPayout = result.TotalIncentive + result.CommissionPercentage.TotalCommission;
+            }
 
             // Generate PDF
             var pdfBytes = PdfGenerator.GenerateTherapistCommissionReport(
                 staff.NickName ?? staff.FullName,
-                startDate ?? DateTime.Now.AddDays(-30), // Default to 30 days if not provided
-                endDate ?? DateTime.Now,
-                reportItems);
+                startDate, // Default to 30 days if not provided
+                endDate ,
+                result);
 
             // Return PDF as file
             var fileName = $"Therapist-Commission-{(staff.NickName ?? staff.FullName).Replace(" ", "_")}-{(startDate?.ToString("yyyyMMdd") ?? DateTime.Now.ToString("yyyyMMdd"))}-{(endDate?.ToString("yyyyMMdd") ?? DateTime.Now.ToString("yyyyMMdd"))}.pdf";
@@ -169,7 +213,7 @@ namespace QwenHT.Controllers
                 if (startDate.HasValue && startDate.Value.LocalDateTime.Day != 1)
                 {
                     var fullMonthHours = await GetFullMonthHoursForComparisonAsync(staffId, startDate.Value);
-                    result.RateBase.AllPeriodHrs = fullMonthHours;
+                    result.RateBase.AllPeriodHrs = Math.Round(fullMonthHours, 2);
                 }
             }
             else if (staffCompensation.IsCommissionPercentage)
@@ -181,7 +225,7 @@ namespace QwenHT.Controllers
                 if (startDate.HasValue && startDate.Value.LocalDateTime.Day != 1)
                 {
                     var fullMonthHours = await GetFullMonthHoursForComparisonAsync(staffId, startDate.Value);
-                    result.CommissionPercentage.AllPeriodHrs = fullMonthHours;
+                    result.CommissionPercentage.AllPeriodHrs = Math.Round(fullMonthHours, 2);
                 }
             }
 
@@ -191,6 +235,58 @@ namespace QwenHT.Controllers
             {
                 result.GuaranteeIncome = await CalculateTherapistGuaranteeIncomeAsync(staffId, staffCompensation, startDate.Value, endDate);
             }
+
+
+            // Step 8: Get Incentive
+            var local = startDate.Value.LocalDateTime;
+            var day = local.Day == 1
+                ? 15
+                : DateTime.DaysInMonth(local.Year, local.Month);
+
+            var incentiveDate = new DateTimeOffset(
+                local.Year,
+                local.Month,
+                day,
+                0, 0, 0,
+                startDate.Value.Offset
+            );
+
+            var incentive = await _context.Incentives.Where(x => x.StaffId == staffId && x.Status == 1 && x.IncentiveDate == incentiveDate).ToListAsync();
+
+
+            if (incentive.Count > 0)
+            {
+                result.Incentives = new List<TherapistIncentiveDto>();
+
+                foreach (var item in incentive)
+                {
+
+                    result.Incentives.Add(new TherapistIncentiveDto
+                    {
+                        IncentiveDate = item.IncentiveDate,
+                        Amount = item.Amount,
+                        Description = item.Description,
+                        Id = item.Id,
+                        Remark = item.Remark
+                    });
+                }
+
+
+
+                result.TotalIncentive = result.Incentives.Sum(x => x.Amount);
+            }
+
+            if (result.IsRate)
+            {
+                result.TotalPayout = result.TotalIncentive + result.RateBase.TotalCommission;
+            }
+            else if (result.IsCommissionPercentage)
+            {
+
+                result.TotalPayout = result.TotalIncentive + result.CommissionPercentage.TotalCommission;
+            }
+
+
 
             return Ok(result);
         }
@@ -249,7 +345,7 @@ namespace QwenHT.Controllers
                     BodyMins = s.Menu.BodyMins,
                     StaffCommission = s.StaffCommission,
                     ExtraCommission = s.ExtraCommission,
-                    Price = s.Price
+                    Price = s.StaffCommission != 0 || s.ExtraCommission != 0 ? 0 : s.Price
                 })
                 .ToListAsync();
 
@@ -287,10 +383,12 @@ namespace QwenHT.Controllers
                 SelectedPeriodHrs = (commissions.Sum(x => x.FootMins) + commissions.Sum(x => x.BodyMins)) / 60.00,
                 TotalStaffCommission = commissions.Sum(x => x.StaffCommission),
                 TotalExtraCommission = commissions.Sum(x => x.ExtraCommission),
-                TotalPrice = commissions.Sum(x => x.Price)
+                TotalPrice = commissions.Sum(x => x.Price),
+                Percentage = comp.CommissionBasePercentage
             };
 
-            response.TotalCommission = response.TotalPrice * (comp.CommissionBasePercentage / 100m);
+            response.TotalCommission = (response.TotalPrice * (comp.CommissionBasePercentage / 100m))
+                                       + response.TotalStaffCommission + response.TotalExtraCommission; ;
             return response;
         }
 
@@ -383,10 +481,10 @@ namespace QwenHT.Controllers
     }
     public class TherapistIncentiveDto
     {
-        public string Id { get; set; } = string.Empty;
+        public Guid Id { get; set; } = Guid.Empty;
         public DateTimeOffset IncentiveDate { get; set; }
-        public string Description { get; set; } = string.Empty;
-        public int Remark { get; set; }
+        public string? Description { get; set; } = string.Empty;
+        public string? Remark { get; set; }
         public decimal Amount { get; set; }
     }
 
@@ -400,6 +498,8 @@ namespace QwenHT.Controllers
         public TherapistPercentageBasedCommissionDto CommissionPercentage { get; set; }
         public bool IsGuaranteeIncome { get; set; }
         public TherapistGuaranteeIncomeCalculationDto GuaranteeIncome { get; set; }
+        public decimal TotalIncentive { get; set; }
+        public decimal TotalPayout { get; set; }
 
     }
 
@@ -432,5 +532,6 @@ namespace QwenHT.Controllers
         public decimal TotalExtraCommission { get; set; }
         public decimal TotalPrice { get; set; }
         public decimal TotalCommission { get; set; }
+        public decimal Percentage { get; set; }
     }
 }

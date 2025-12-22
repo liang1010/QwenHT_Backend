@@ -21,6 +21,9 @@ namespace QwenHT.Data
         public DbSet<OptionValue> OptionValues { get; set; }
         public DbSet<Menu> Menus { get; set; }
         public DbSet<Sales> Sales { get; set; }
+        public DbSet<Incentive> Incentives { get; set; }
+
+
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -199,6 +202,22 @@ namespace QwenHT.Data
                 // Configure timestamp fields for ApplicationUser
                 entity.Property(e => e.CreatedAt);
             });
+
+            builder.Entity<Incentive>(entity =>
+            {
+                entity.HasKey(s => s.Id);
+
+                // Relationships
+                entity.HasOne(s => s.Staff)
+                      .WithMany(st => st.IncentiveRecords)
+                      .HasForeignKey(s => s.StaffId)
+                      .OnDelete(DeleteBehavior.Restrict); // Avoid cascade delete
+
+                // Configure timestamp fields for Sales
+                entity.Property(e => e.CreatedAt);
+                entity.Property(e => e.LastUpdated);
+            });
+
         }
     }
 }

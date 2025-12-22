@@ -1,163 +1,233 @@
 using iTextSharp.text;
 using iTextSharp.text.pdf;
-using System.IO;
+using QwenHT.Controllers;
 using QwenHT.Models;
+using System.Globalization;
+using System.IO;
 
 namespace QwenHT.Utilities
 {
     public static class PdfGenerator
     {
-        public static byte[] GenerateTherapistCommissionReport(
-            string therapistName,
-            DateTime periodStart,
-            DateTime periodEnd,
-            List<TherapistCommissionReportItem> commissionData)
+        private static string FormatMYR(decimal value)
         {
-            using var memoryStream = new MemoryStream();
-            var document = new Document(PageSize.A4); // Landscape orientation for more columns
-            var writer = PdfWriter.GetInstance(document, memoryStream);
-            
+            return value == 0
+                ? ""
+                : $"MYR {value.ToString("#,##0.00", CultureInfo.InvariantCulture)}";
+        }
+
+        private static string FormatMins(int mins)
+        {
+            return mins == 0 ? "" : mins.ToString();
+        }
+
+        private static void AddHeader(PdfPTable table, Font font, params string[] titles)
+        {
+            foreach (var t in titles)
+            {
+                table.AddCell(new PdfPCell(new Phrase(t, font))
+                {
+                    HorizontalAlignment = Element.ALIGN_CENTER,
+                    BackgroundColor = BaseColor.LightGray
+                });
+            }
+        }
+
+        private static PdfPCell SpacerCell(int colspan) =>
+            new PdfPCell(new Phrase(" "))
+            {
+                Colspan = colspan,
+                FixedHeight = 6,
+                Border = Rectangle.NO_BORDER
+            };
+
+        private static PdfPCell Center(string text, Font font, int border = Rectangle.NO_BORDER) =>
+            new PdfPCell(new Phrase(text, font))
+            {
+                HorizontalAlignment = Element.ALIGN_CENTER,
+                Border = border
+            };
+
+        private static PdfPCell Left(string text, Font font) =>
+            new PdfPCell(new Phrase(text, font))
+            {
+                HorizontalAlignment = Element.ALIGN_LEFT,
+                Border = Rectangle.NO_BORDER
+            };
+
+        private static PdfPCell Right(string text, Font font, int border = Rectangle.NO_BORDER) =>
+            new PdfPCell(new Phrase(text, font))
+            {
+                HorizontalAlignment = Element.ALIGN_RIGHT,
+                Border = border
+            };
+
+        private static PdfPCell Header(string text, Font font, int align = Element.ALIGN_CENTER) =>
+            new PdfPCell(new Phrase(text, font))
+            {
+                HorizontalAlignment = align,
+                BackgroundColor = BaseColor.LightGray
+            };
+
+        private static PdfPCell FooterLabel(string text, int colspan) =>
+            new PdfPCell(new Phrase(text, FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 9)))
+            {
+                Colspan = colspan,
+                HorizontalAlignment = Element.ALIGN_RIGHT,
+                Border = Rectangle.TOP_BORDER
+            };
+
+        public static byte[] GenerateTherapistCommissionReport(
+    string therapistName,
+    DateTimeOffset? periodStart,
+    DateTimeOffset? periodEnd,
+    TherapistCommissionReportDto data)
+        {
+            using var ms = new MemoryStream();
+            var document = new Document(PageSize.A4, 15, 15, 10, 10);
+            PdfWriter.GetInstance(document, ms);
             document.Open();
 
-            // Add title
-            var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 16);
-            var title = new Paragraph($"Therapist Commission Report - {therapistName}", titleFont)
-            {
-                Alignment = Element.ALIGN_CENTER
-            };
-            document.Add(title);
-            
-            document.Add(new Paragraph($"Period: {periodStart.ToUniversalTime().AddHours(8):dd/MM/yyyy} - {periodEnd.ToUniversalTime().AddHours(8):dd/MM/yyyy}")
+            // =======================
+            // Fonts
+            // =======================
+            var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 12);
+            var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10);
+            var dataFont = FontFactory.GetFont(FontFactory.HELVETICA, 9);
+            var boldFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 9);
+
+            // =======================
+            // Title
+            // =======================
+            document.Add(new Paragraph($"Therapist Commission Report - {therapistName}", titleFont)
             {
                 Alignment = Element.ALIGN_CENTER
             });
-            
-            document.Add(new Paragraph(" ")); // Space
 
-            // Add report date
-            var dateFont = FontFactory.GetFont(FontFactory.HELVETICA, 10);
-            var dateParagraph = new Paragraph($"Generated on: {DateTime.Now:dd/MM/yyyy HH:mm}", dateFont)
+            document.Add(new Paragraph(
+                $"Period: {periodStart:dd/MM/yyyy} - {periodEnd:dd/MM/yyyy}",
+                dataFont)
+            { Alignment = Element.ALIGN_CENTER });
+
+            document.Add(new Paragraph($"Generated on: {DateTime.Now:dd/MM/yyyy HH:mm}", dataFont)
+            { Alignment = Element.ALIGN_RIGHT });
+
+            // =======================
+            // COMMISSION TABLE
+            // =======================
+            var table = new PdfPTable(new float[]
             {
-                Alignment = Element.ALIGN_RIGHT
-            };
-            document.Add(dateParagraph);
-
-            document.Add(new Paragraph(" ")); // Space
-
-            // Create table
-            var columns = new[] { 1f, 1f, 1f, 1f, 1f, 1f };
-            var table = new PdfPTable(columns)
+        1.2f, // Sales Date
+        2.8f, // Menu Code
+        1f,   // Foot Mins
+        1f,   // Body Mins
+        1.8f, // Staff Commission
+        1.8f  // Extra Commission
+            })
             {
                 WidthPercentage = 100
             };
 
-            // Header row
-            var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10);
-            var headers = new[] { "Sales Date", "Menu Code", "Foot Mins", "Body Mins", "Staff Commission", "Extra Commission" };
-            
-            foreach (var header in headers)
+            AddHeader(table, headerFont,
+                "Sales Date",
+                "Menu Code",
+                "Foot Mins",
+                "Body Mins",
+                "Staff Commission",
+                "Extra Commission");
+
+            DateTime? lastDate = null;
+
+            foreach (var row in data.Commissions)
             {
-                var cell = new PdfPCell(new Phrase(header, headerFont))
+                if (lastDate != null && lastDate != row.SalesDate.Date)
                 {
-                    HorizontalAlignment = Element.ALIGN_CENTER,
-                    VerticalAlignment = Element.ALIGN_MIDDLE,
-                    BackgroundColor = BaseColor.LightGray
-                };
-                table.AddCell(cell);
+                    table.AddCell(Center("", dataFont, Rectangle.LEFT_BORDER));
+                    table.AddCell(SpacerCell(4));
+                    table.AddCell(Center("", dataFont, Rectangle.RIGHT_BORDER));
+                }
+
+                lastDate = row.SalesDate.Date;
+
+                table.AddCell(Center(row.SalesDate.ToString("dd/MM/yyyy"), dataFont, Rectangle.LEFT_BORDER));
+                table.AddCell(Center(row.MenuCode, dataFont));
+                table.AddCell(Right(FormatMins(row.FootMins), dataFont));
+                table.AddCell(Right(FormatMins(row.BodyMins), dataFont));
+                table.AddCell(Right(FormatMYR(row.StaffCommission), dataFont));
+                table.AddCell(Right(FormatMYR(row.ExtraCommission), dataFont, Rectangle.RIGHT_BORDER));
             }
 
-            // Data rows
-            var dataFont = FontFactory.GetFont(FontFactory.HELVETICA, 9);
-            foreach (var item in commissionData)
-            {
-                table.AddCell(new PdfPCell(new Phrase(item.SalesDate.ToUniversalTime().AddHours(8).ToString("dd/MM/yyyy"), dataFont))
-                {
-                    HorizontalAlignment = Element.ALIGN_CENTER
-                });
-                
-                table.AddCell(new PdfPCell(new Phrase(item.MenuCode, dataFont))
-                {
-                    HorizontalAlignment = Element.ALIGN_CENTER
-                });
-                
-                table.AddCell(new PdfPCell(new Phrase(item.FootMins.ToString(), dataFont))
-                {
-                    HorizontalAlignment = Element.ALIGN_CENTER
-                });
-                
-                table.AddCell(new PdfPCell(new Phrase(item.BodyMins.ToString(), dataFont))
-                {
-                    HorizontalAlignment = Element.ALIGN_CENTER
-                });
-                
-                table.AddCell(new PdfPCell(new Phrase($"MYR {item.StaffCommission:F2}", dataFont))
-                {
-                    HorizontalAlignment = Element.ALIGN_RIGHT
-                });
-                
-                table.AddCell(new PdfPCell(new Phrase($"MYR {item.ExtraCommission:F2}", dataFont))
-                {
-                    HorizontalAlignment = Element.ALIGN_RIGHT
-                });
-            }
-
-            // Add totals row
-            var totalFootMins = commissionData.Sum(x => x.FootMins);
-            var totalBodyMins = commissionData.Sum(x => x.BodyMins);
-            var totalStaffCommission = commissionData.Sum(x => x.StaffCommission);
-            var totalExtraCommission = commissionData.Sum(x => x.ExtraCommission);
-            
-            var totalsFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 9);
-            table.AddCell(new PdfPCell(new Phrase("TOTALS", totalsFont))
-            {
-                HorizontalAlignment = Element.ALIGN_CENTER,
-                BackgroundColor = BaseColor.LightGray
-            });
-            
-            table.AddCell(new PdfPCell(new Phrase("", totalsFont))
-            {
-                BackgroundColor = BaseColor.LightGray
-            });
-            
-            table.AddCell(new PdfPCell(new Phrase(totalFootMins.ToString(), totalsFont))
-            {
-                HorizontalAlignment = Element.ALIGN_CENTER,
-                BackgroundColor = BaseColor.LightGray
-            });
-            
-            table.AddCell(new PdfPCell(new Phrase(totalBodyMins.ToString(), totalsFont))
-            {
-                HorizontalAlignment = Element.ALIGN_CENTER,
-                BackgroundColor = BaseColor.LightGray
-            });
-            
-            table.AddCell(new PdfPCell(new Phrase($"${totalStaffCommission:F2}", totalsFont))
-            {
-                HorizontalAlignment = Element.ALIGN_RIGHT,
-                BackgroundColor = BaseColor.LightGray
-            });
-            
-            table.AddCell(new PdfPCell(new Phrase($"${totalExtraCommission:F2}", totalsFont))
-            {
-                HorizontalAlignment = Element.ALIGN_RIGHT,
-                BackgroundColor = BaseColor.LightGray
-            });
+            // =======================
+            // TOTALS
+            // =======================
+            table.AddCell(Header("TOTALS", boldFont));
+            table.AddCell(Header("", boldFont));
+            table.AddCell(Header(data.Commissions.Sum(x => x.FootMins).ToString(), boldFont));
+            table.AddCell(Header(data.Commissions.Sum(x => x.BodyMins).ToString(), boldFont));
+            table.AddCell(Header(FormatMYR(data.Commissions.Sum(x => x.StaffCommission)), boldFont, Element.ALIGN_RIGHT));
+            table.AddCell(Header(FormatMYR(data.Commissions.Sum(x => x.ExtraCommission)), boldFont, Element.ALIGN_RIGHT));
+            table.AddCell(Header("TOTALS", boldFont));
+            table.AddCell(Header("", boldFont));
+            table.AddCell(Header(data.Commissions.Sum(x => x.FootMins).ToString(), boldFont));
+            table.AddCell(Header(data.Commissions.Sum(x => x.BodyMins).ToString(), boldFont));
+            table.AddCell(Header(FormatMYR(data.Commissions.Sum(x => x.StaffCommission)), boldFont, Element.ALIGN_RIGHT));
+            table.AddCell(Header(FormatMYR(data.Commissions.Sum(x => x.ExtraCommission)), boldFont, Element.ALIGN_RIGHT));
 
             document.Add(table);
 
+            // =======================
+            // INCENTIVE TABLE
+            // =======================
+            document.Add(Chunk.Newline);
+            document.Add(new Paragraph("Incentives", headerFont));
+
+            var incentiveTable = new PdfPTable(new float[]
+            {
+        1.5f, // Date
+        3f,   // Description
+        3f,   // Remark
+        1.5f  // Amount
+            })
+            {
+                WidthPercentage = 100
+            };
+
+            AddHeader(incentiveTable, headerFont,
+                "Incentive Date",
+                "Description",
+                "Remark",
+                "Amount");
+
+            foreach (var i in data.Incentives)
+            {
+                incentiveTable.AddCell(Center(i.IncentiveDate.ToString("dd/MM/yyyy"), dataFont));
+                incentiveTable.AddCell(Left(i.Description, dataFont));
+                incentiveTable.AddCell(Left(i.Remark, dataFont));
+                incentiveTable.AddCell(Right(FormatMYR(i.Amount), dataFont));
+            }
+
+            // Totals
+            incentiveTable.AddCell(FooterLabel("Total Incentive :", 3));
+            incentiveTable.AddCell(Right(FormatMYR(data.TotalIncentive), boldFont));
+
+            incentiveTable.AddCell(FooterLabel("Total Payout :", 3));
+            incentiveTable.AddCell(Right(FormatMYR(data.TotalPayout), boldFont));
+
+            document.Add(incentiveTable);
+
             document.Close();
-
-            return memoryStream.ToArray();
+            return ms.ToArray();
         }
-    }
 
-    public class TherapistCommissionReportItem
-    {
-        public DateTimeOffset SalesDate { get; set; }
-        public string MenuCode { get; set; } = string.Empty;
-        public int FootMins { get; set; }
-        public int BodyMins { get; set; }
-        public decimal StaffCommission { get; set; }
-        public decimal ExtraCommission { get; set; }
+
+        public class TherapistCommissionReportItem
+        {
+            public DateTimeOffset SalesDate { get; set; }
+            public string MenuCode { get; set; } = string.Empty;
+            public int FootMins { get; set; }
+            public int BodyMins { get; set; }
+            public decimal StaffCommission { get; set; }
+            public decimal ExtraCommission { get; set; }
+        }
     }
 }
