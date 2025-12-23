@@ -3,6 +3,23 @@ using System.ComponentModel.DataAnnotations;
 
 namespace QwenHT.Models
 {
+    public class CreateIncentive
+    {
+        public DateTimeOffset IncentiveDate { get; set; }
+
+        // Foreign key to Staff (new system uses Guid)
+        public Guid StaffId { get; set; }
+
+        // Outlet as string (or change to Guid if you create Outlet entity)
+        [Required, MaxLength(100)]
+        public string Description { get; set; } = default!;
+
+        [MaxLength(500)]
+        public string? Remark { get; set; }
+
+        [Precision(10, 2)]
+        public decimal Amount { get; set; }
+    }
     public class Incentive
     {
         public Guid Id { get; set; }

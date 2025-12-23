@@ -12,7 +12,7 @@ namespace QwenHT.Utilities
         private static string FormatMYR(decimal value)
         {
             return value == 0
-                ? ""
+                ? $"MYR {0.ToString("#,##0.00", CultureInfo.InvariantCulture)}"
                 : $"MYR {value.ToString("#,##0.00", CultureInfo.InvariantCulture)}";
         }
 
@@ -28,7 +28,6 @@ namespace QwenHT.Utilities
                 table.AddCell(new PdfPCell(new Phrase(t, font))
                 {
                     HorizontalAlignment = Element.ALIGN_CENTER,
-                    BackgroundColor = BaseColor.LightGray
                 });
             }
         }
@@ -62,11 +61,12 @@ namespace QwenHT.Utilities
                 Border = border
             };
 
-        private static PdfPCell Header(string text, Font font, int align = Element.ALIGN_CENTER) =>
+        private static PdfPCell Header(string text, Font font, int align = Element.ALIGN_CENTER, int border = Rectangle.NO_BORDER, int colspan = 1) =>
             new PdfPCell(new Phrase(text, font))
             {
+                Colspan = colspan,
                 HorizontalAlignment = align,
-                BackgroundColor = BaseColor.LightGray
+                Border = border
             };
 
         private static PdfPCell FooterLabel(string text, int colspan) =>
@@ -99,13 +99,15 @@ namespace QwenHT.Utilities
             // =======================
             // Title
             // =======================
-            document.Add(new Paragraph($"Therapist Commission Report - {therapistName}", titleFont)
+            document.Add(new Paragraph($"Therapist Commission - {therapistName}", titleFont)
             {
                 Alignment = Element.ALIGN_CENTER
             });
 
+            var periodStartPlus8 = periodStart.Value.ToOffset(TimeSpan.FromHours(8));           // UTC+8
+            var periodEndPlus8 = periodEnd.Value.ToOffset(TimeSpan.FromHours(8));           // UTC+8
             document.Add(new Paragraph(
-                $"Period: {periodStart:dd/MM/yyyy} - {periodEnd:dd/MM/yyyy}",
+                $"Period: {periodStartPlus8:dd/MM/yyyy} - {periodEndPlus8:dd/MM/yyyy}",
                 dataFont)
             { Alignment = Element.ALIGN_CENTER });
 
@@ -115,26 +117,24 @@ namespace QwenHT.Utilities
             // =======================
             // COMMISSION TABLE
             // =======================
-            var table = new PdfPTable(new float[]
-            {
-        1.2f, // Sales Date
-        2.8f, // Menu Code
-        1f,   // Foot Mins
-        1f,   // Body Mins
-        1.8f, // Staff Commission
-        1.8f  // Extra Commission
-            })
+
+            // Define column widths dynamically
+            var columnWidths = data.IsCommissionPercentage
+                ? new float[] { 1.2f, 1.2f, 1.5f, 1.5f, 2.1f, 2.1f, 2.1f } // With Price
+                : new float[] { 1.2f, 1.2f, 1.5f, 1.5f, 2.1f, 2.1f };       // Without Price
+
+            var table = new PdfPTable(columnWidths)
             {
                 WidthPercentage = 100
             };
 
-            AddHeader(table, headerFont,
-                "Sales Date",
-                "Menu Code",
-                "Foot Mins",
-                "Body Mins",
-                "Staff Commission",
-                "Extra Commission");
+            // Define headers dynamically
+            var headers = data.IsCommissionPercentage
+                ? new[] { "Sales Date", "Menu Code", "Foot Mins", "Body Mins", "Staff Commission", "Extra Commission", "Price" }
+                : new[] { "Sales Date", "Menu Code", "Foot Mins", "Body Mins", "Staff Commission", "Extra Commission" };
+
+            // Add header to the table
+            AddHeader(table, headerFont, headers);
 
             DateTime? lastDate = null;
 
@@ -143,7 +143,7 @@ namespace QwenHT.Utilities
                 if (lastDate != null && lastDate != row.SalesDate.Date)
                 {
                     table.AddCell(Center("", dataFont, Rectangle.LEFT_BORDER));
-                    table.AddCell(SpacerCell(4));
+                    table.AddCell(SpacerCell(data.IsCommissionPercentage ? 5 : 4));
                     table.AddCell(Center("", dataFont, Rectangle.RIGHT_BORDER));
                 }
 
@@ -153,26 +153,56 @@ namespace QwenHT.Utilities
                 table.AddCell(Center(row.MenuCode, dataFont));
                 table.AddCell(Right(FormatMins(row.FootMins), dataFont));
                 table.AddCell(Right(FormatMins(row.BodyMins), dataFont));
-                table.AddCell(Right(FormatMYR(row.StaffCommission), dataFont));
-                table.AddCell(Right(FormatMYR(row.ExtraCommission), dataFont, Rectangle.RIGHT_BORDER));
+                table.AddCell(Right(row.StaffCommission == 0 ? "" : FormatMYR(row.StaffCommission), dataFont));
+                table.AddCell(Right(row.ExtraCommission == 0 ? "" : FormatMYR(row.ExtraCommission), dataFont, data.IsCommissionPercentage ? 0 : Rectangle.RIGHT_BORDER));
+                if (data.IsCommissionPercentage)
+                    table.AddCell(Right(row.Price == 0 ? "" : FormatMYR(row.Price), dataFont, Rectangle.RIGHT_BORDER));
             }
 
             // =======================
             // TOTALS
             // =======================
-            table.AddCell(Header("TOTALS", boldFont));
-            table.AddCell(Header("", boldFont));
-            table.AddCell(Header(data.Commissions.Sum(x => x.FootMins).ToString(), boldFont));
-            table.AddCell(Header(data.Commissions.Sum(x => x.BodyMins).ToString(), boldFont));
-            table.AddCell(Header(FormatMYR(data.Commissions.Sum(x => x.StaffCommission)), boldFont, Element.ALIGN_RIGHT));
-            table.AddCell(Header(FormatMYR(data.Commissions.Sum(x => x.ExtraCommission)), boldFont, Element.ALIGN_RIGHT));
-            table.AddCell(Header("TOTALS", boldFont));
-            table.AddCell(Header("", boldFont));
-            table.AddCell(Header(data.Commissions.Sum(x => x.FootMins).ToString(), boldFont));
-            table.AddCell(Header(data.Commissions.Sum(x => x.BodyMins).ToString(), boldFont));
-            table.AddCell(Header(FormatMYR(data.Commissions.Sum(x => x.StaffCommission)), boldFont, Element.ALIGN_RIGHT));
-            table.AddCell(Header(FormatMYR(data.Commissions.Sum(x => x.ExtraCommission)), boldFont, Element.ALIGN_RIGHT));
+            if (data.IsRate)
+            {
+                table.AddCell(Header("TOTALS", boldFont, 1, Rectangle.LEFT_BORDER));
+                table.AddCell(Header($"{data.RateBase.SelectedPeriodHrs:0.#} hrs", boldFont));
+                table.AddCell(Header(FormatMYR(data.RateBase.TotalFootCommission), boldFont, Element.ALIGN_RIGHT));
+                table.AddCell(Header(FormatMYR(data.RateBase.TotalBodyCommission), boldFont, Element.ALIGN_RIGHT));
+                table.AddCell(Header(FormatMYR(data.RateBase.TotalStaffCommission), boldFont, Element.ALIGN_RIGHT));
+                table.AddCell(Header(FormatMYR(data.RateBase.TotalExtraCommission), boldFont, Element.ALIGN_RIGHT, Rectangle.RIGHT_BORDER));
 
+                table.AddCell(Header(" ", boldFont, 1, 6));
+                var hours = data.RateBase.AllPeriodHrs == 0
+    ? data.RateBase.SelectedPeriodHrs
+    : data.RateBase.AllPeriodHrs;
+                table.AddCell(Header($"{hours:0.#} hrs", boldFont, 1, 2));
+                table.AddCell(Header("", boldFont, Element.ALIGN_RIGHT, 2));
+                table.AddCell(Header("", boldFont, Element.ALIGN_RIGHT, 2));
+                table.AddCell(Header("Total Commission :", boldFont, Element.ALIGN_RIGHT, 2));
+                table.AddCell(Header(FormatMYR(data.RateBase.TotalCommission), boldFont, Element.ALIGN_RIGHT, 10));
+            }
+
+            else if (data.IsCommissionPercentage)
+            {
+                table.AddCell(Header("TOTALS", boldFont, 1, Rectangle.LEFT_BORDER));
+                table.AddCell(Header($"{data.CommissionPercentage.SelectedPeriodHrs:0.#} hrs", boldFont));
+                table.AddCell(Header("", boldFont, Element.ALIGN_RIGHT));
+                table.AddCell(Header("", boldFont, Element.ALIGN_RIGHT));
+                table.AddCell(Header(FormatMYR(data.CommissionPercentage.TotalStaffCommission), boldFont, Element.ALIGN_RIGHT));
+                table.AddCell(Header(FormatMYR(data.CommissionPercentage.TotalExtraCommission), boldFont, Element.ALIGN_RIGHT));
+                table.AddCell(Header(FormatMYR(data.CommissionPercentage.TotalPrice), boldFont, Element.ALIGN_RIGHT, Rectangle.RIGHT_BORDER));
+
+                table.AddCell(Header(" ", boldFont, 1, 6));
+                var hours = data.CommissionPercentage.AllPeriodHrs == 0
+    ? data.CommissionPercentage.SelectedPeriodHrs
+    : data.CommissionPercentage.AllPeriodHrs;
+                table.AddCell(Header($"{hours:0.#} hrs", boldFont, 1, 2));
+                table.AddCell(Header("", boldFont, Element.ALIGN_RIGHT, 2));
+                table.AddCell(Header("", boldFont, Element.ALIGN_RIGHT, 2));
+                table.AddCell(Header($"Total Sales : {data.CommissionPercentage.Percentage}%", boldFont, Element.ALIGN_RIGHT, 2));
+                table.AddCell(Header("Total Commission :", boldFont, Element.ALIGN_RIGHT, 2));
+                table.AddCell(Header(FormatMYR(data.CommissionPercentage.TotalCommission), boldFont, Element.ALIGN_RIGHT, 10));
+            }
             document.Add(table);
 
             // =======================
@@ -181,37 +211,45 @@ namespace QwenHT.Utilities
             document.Add(Chunk.Newline);
             document.Add(new Paragraph("Incentives", headerFont));
 
+            document.Add(Chunk.Newline);
+
+
             var incentiveTable = new PdfPTable(new float[]
             {
-        1.5f, // Date
-        3f,   // Description
-        3f,   // Remark
-        1.5f  // Amount
+        1.2f, // Date
+        2.7f,   // Description
+        3.6f,   // Remark
+        2.1f  // Amount
             })
             {
                 WidthPercentage = 100
             };
 
             AddHeader(incentiveTable, headerFont,
-                "Incentive Date",
+                "Date",
                 "Description",
                 "Remark",
                 "Amount");
 
             foreach (var i in data.Incentives)
             {
-                incentiveTable.AddCell(Center(i.IncentiveDate.ToString("dd/MM/yyyy"), dataFont));
+                incentiveTable.AddCell(Center(i.IncentiveDate.ToString("dd/MM/yyyy"), dataFont, Rectangle.LEFT_BORDER));
                 incentiveTable.AddCell(Left(i.Description, dataFont));
                 incentiveTable.AddCell(Left(i.Remark, dataFont));
-                incentiveTable.AddCell(Right(FormatMYR(i.Amount), dataFont));
+                incentiveTable.AddCell(Right(FormatMYR(i.Amount), dataFont, Rectangle.RIGHT_BORDER));
             }
 
             // Totals
-            incentiveTable.AddCell(FooterLabel("Total Incentive :", 3));
-            incentiveTable.AddCell(Right(FormatMYR(data.TotalIncentive), boldFont));
+            incentiveTable.AddCell(Header("", boldFont, Element.ALIGN_RIGHT, 6));
+            incentiveTable.AddCell(Header("", boldFont, Element.ALIGN_RIGHT, 2));
+            incentiveTable.AddCell(Header("Total Incentive :", boldFont, Element.ALIGN_RIGHT, 2));
+            incentiveTable.AddCell(Header(FormatMYR(data.TotalIncentive), boldFont, Element.ALIGN_RIGHT, 10));
 
-            incentiveTable.AddCell(FooterLabel("Total Payout :", 3));
-            incentiveTable.AddCell(Right(FormatMYR(data.TotalPayout), boldFont));
+
+            incentiveTable.AddCell(Header("", boldFont, Element.ALIGN_RIGHT));
+            incentiveTable.AddCell(Header("", boldFont, Element.ALIGN_RIGHT));
+            incentiveTable.AddCell(Header("Total Payout :", boldFont, Element.ALIGN_RIGHT));
+            incentiveTable.AddCell(Header(FormatMYR(data.TotalPayout), boldFont, Element.ALIGN_RIGHT));
 
             document.Add(incentiveTable);
 

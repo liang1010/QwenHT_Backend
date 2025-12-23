@@ -15,6 +15,87 @@ namespace QwenHT.Controllers
     {
 
 
+
+        [HttpPost("therapist/incentives")]
+        public async Task<ActionResult<Incentive>> CreateIncentive(CreateIncentive menuDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            // Get current user from JWT claims
+            var username = User?.Claims?.FirstOrDefault(c => c.Type == "username")?.Value ?? "Unknown";
+
+            var menu = new Incentive
+            {
+                Id = Guid.NewGuid(),
+                Amount = menuDto.Amount,
+                IncentiveDate = menuDto.IncentiveDate,
+                Remark = menuDto.Remark,
+                Description = menuDto.Description,
+                StaffId = menuDto.StaffId,
+                Status = 1,
+                CreatedBy = username,
+                CreatedAt = DateTimeOffset.UtcNow,
+                LastUpdated = DateTimeOffset.UtcNow,
+                LastModifiedBy = username
+            };
+
+            _context.Incentives.Add(menu);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(CreateIncentive), new { id = menu.Id }, menu);
+        }
+
+        [HttpPost("therapist/incentives/{id}")]
+        public async Task<IActionResult> UpdateMenu(Guid id, CreateIncentive menuDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var menu = await _context.Incentives.FindAsync(id);
+
+            if (menu == null)
+            {
+                return NotFound();
+            }
+
+            // Get current user from JWT claims
+            var username = User?.Claims?.FirstOrDefault(c => c.Type == "username")?.Value ?? "Unknown";
+            menu.Description = menuDto.Description;
+            menu.Remark = menuDto.Remark;
+            menu.Amount = menuDto.Amount;
+            menu.IncentiveDate = menuDto.IncentiveDate;
+            menu.Status = 1;
+            menu.LastUpdated = DateTimeOffset.UtcNow;
+            menu.LastModifiedBy = username;
+
+            _context.Incentives.Update(menu);
+            await _context.SaveChangesAsync();
+
+            return Ok(menu);
+        }
+
+        [HttpPost("therapist/incentives/{id}/delete")]
+        public async Task<IActionResult> DeleteMenu(Guid id)
+        {
+            var menu = await _context.Incentives.FindAsync(id);
+
+            if (menu == null)
+            {
+                return NotFound();
+            }
+
+            menu.Status = 0;
+            _context.Incentives.Update(menu);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
         // GET api/commission/therapist/pdf - Generate therapist commission PDF report (grouped by date and menu code)
         [HttpGet("therapist/pdf")]
         public async Task<IActionResult> GetTherapistCommissionPdf(
@@ -23,7 +104,7 @@ namespace QwenHT.Controllers
             [FromQuery] DateTimeOffset? endDate = null)
         {
 
-            var staff = await _context.Staff.Where(x=>x.Id == staffId).FirstOrDefaultAsync();
+            var staff = await _context.Staff.Where(x => x.Id == staffId).FirstOrDefaultAsync();
             // Step 1: Fetch all required sales data in a single query for efficiency
             var salesData = await GetSalesDataAsync(staffId, startDate, endDate);
 
@@ -98,7 +179,7 @@ namespace QwenHT.Controllers
                 startDate.Value.Offset
             );
 
-            var incentive = await _context.Incentives.Where(x => x.StaffId == staffId && x.Status == 1 && x.IncentiveDate == incentiveDate).ToListAsync();
+            var incentive = await _context.Incentives.Where(x => x.StaffId == staffId && x.Status == 1 && x.IncentiveDate == endDate).ToListAsync();
 
 
             if (incentive.Count > 0)
@@ -137,7 +218,7 @@ namespace QwenHT.Controllers
             var pdfBytes = PdfGenerator.GenerateTherapistCommissionReport(
                 staff.NickName ?? staff.FullName,
                 startDate, // Default to 30 days if not provided
-                endDate ,
+                endDate,
                 result);
 
             // Return PDF as file
@@ -175,7 +256,8 @@ namespace QwenHT.Controllers
         public async Task<ActionResult<TherapistCommissionReportDto>> GetTherapistCommission(
             [FromQuery] Guid staffId,
             [FromQuery] DateTimeOffset? startDate = null,
-            [FromQuery] DateTimeOffset? endDate = null)
+            [FromQuery] DateTimeOffset? endDate = null,
+            [FromQuery] bool? incentive = false)
         {
             // Step 1: Fetch all required sales data in a single query for efficiency
             var salesData = await GetSalesDataAsync(staffId, startDate, endDate);
@@ -193,6 +275,9 @@ namespace QwenHT.Controllers
             // Step 4: Retrieve staff compensation settings to determine calculation method
             var staffCompensation = await _context.StaffCompensations
                 .FirstOrDefaultAsync(x => x.StaffId == staffId);
+
+            var staff = await _context.Staff
+                .FirstOrDefaultAsync(x => x.Id == staffId);
 
             // If no compensation setup is found, return basic commission data only
             if (staffCompensation == null)
@@ -231,10 +316,99 @@ namespace QwenHT.Controllers
 
             // Step 7: Calculate guarantee income if applicable
             // Only calculate if guarantee is enabled and the reporting period doesn't start on the 1st of the month
-            if (staffCompensation.IsGuaranteeIncome && startDate.HasValue && startDate.Value.LocalDateTime.Day != 1)
+            if (startDate.HasValue && startDate.Value.LocalDateTime.Day != 1)
             {
-                result.GuaranteeIncome = await CalculateTherapistGuaranteeIncomeAsync(staffId, staffCompensation, startDate.Value, endDate);
+                if (incentive == true)
+                {
+                    bool isMalaysian = staff.Nationality.ToLower().Contains("malaysia");
+                    bool isFemale = staff.Gender.ToLower().Contains("female");
+                    var hrscategory =
+        isMalaysian
+            ? (isFemale ? "INCENTIVE_HOURS_MF" : "INCENTIVE_HOURS_MM")
+            : (isFemale ? "INCENTIVE_HOURS_NMF" : "INCENTIVE_HOURS_NMM");
+
+                    int.TryParse(_context.OptionValues.Where(x => x.Category == hrscategory).FirstOrDefaultAsync().Result.Value, out int incentivehrs);
+                    var amountcategory =
+        isMalaysian
+            ? (isFemale ? "INCENTIVE_AMOUNT_MF" : "INCENTIVE_AMOUNT_MM")
+            : (isFemale ? "INCENTIVE_AMOUNT_NMF" : "INCENTIVE_AMOUNT_NMM");
+
+                    int.TryParse(_context.OptionValues.Where(x => x.Category == amountcategory).FirstOrDefaultAsync().Result.Value, out int incentiveAmount);
+
+                    Console.WriteLine(incentiveAmount);
+
+                    if (result.IsRate && !staffCompensation.IsGuaranteeIncome)
+                    {
+                        if (result.RateBase.AllPeriodHrs >= incentivehrs)
+                        {
+                            var exist = await _context.Incentives.Where(x => x.StaffId == staffId && x.IncentiveDate == endDate.Value && x.Description == "EXCEED TREATMENT HOURS" && x.Status == 1).FirstOrDefaultAsync();
+
+                            if (exist == null)
+                                _context.Incentives.Add(new Incentive
+                            {
+                                Id = Guid.NewGuid(),
+                                Amount = (decimal)result.RateBase.AllPeriodHrs * incentiveAmount,
+                                IncentiveDate = endDate.Value,
+                                Remark = "EXCEED " + incentivehrs + " TREATMENT HOURS INCENTIVE(" + result.RateBase.AllPeriodHrs + " x " + incentiveAmount + ")",
+                                Description = "EXCEED TREATMENT HOURS",
+                                StaffId = staffId,
+                                Status = 1,
+                                CreatedBy = "System",
+                                CreatedAt = DateTimeOffset.UtcNow,
+                                LastUpdated = DateTimeOffset.UtcNow,
+                                LastModifiedBy = "System"
+                            });
+                            else
+                            {
+                                exist.Amount = (decimal)result.RateBase.AllPeriodHrs * incentiveAmount;
+                                exist.Remark = "EXCEED " + incentivehrs + " TREATMENT HOURS INCENTIVE(" + result.RateBase.AllPeriodHrs + " x " + incentiveAmount + ")";
+                                exist.LastUpdated = DateTimeOffset.UtcNow;
+                                exist.LastModifiedBy = "System";
+
+                                _context.Incentives.Update(exist);
+                            }
+                            _context.SaveChanges();
+                        }
+                    }
+
+
+                }
+
+                if (staffCompensation.IsGuaranteeIncome)
+                {
+                    result.GuaranteeIncome = await CalculateTherapistGuaranteeIncomeAsync(staffId, staffCompensation, startDate.Value, endDate);
+
+                    var exist = await _context.Incentives.Where(x => x.StaffId == staffId && x.IncentiveDate == endDate.Value && x.Description == "GUARANTEE INCOME" && x.Status == 1).FirstOrDefaultAsync();
+
+                    if (exist == null)
+                        _context.Incentives.Add(new Incentive
+                        {
+                            Id = Guid.NewGuid(),
+                            Amount = result.GuaranteeIncome.GuaranteeIncomePaid,
+                            IncentiveDate = endDate.Value,
+                            Remark = "GUARANTEE INCOME AMOUNT " + staffCompensation.GuaranteeIncome,
+                            Description = "GUARANTEE INCOME",
+                            StaffId = staffId,
+                            Status = 1,
+                            CreatedBy = "System",
+                            CreatedAt = DateTimeOffset.UtcNow,
+                            LastUpdated = DateTimeOffset.UtcNow,
+                            LastModifiedBy = "System"
+                        });
+                    else
+                    {
+                        exist.Amount = result.GuaranteeIncome.GuaranteeIncomePaid;
+                        exist.Remark = "GUARANTEE INCOME AMOUNT " + staffCompensation.GuaranteeIncome;
+                        exist.LastUpdated = DateTimeOffset.UtcNow;
+                        exist.LastModifiedBy = "System";
+
+                        _context.Incentives.Update(exist);
+                    }
+                    _context.SaveChanges();
+                }
             }
+
+
 
 
             // Step 8: Get Incentive
@@ -251,14 +425,14 @@ namespace QwenHT.Controllers
                 startDate.Value.Offset
             );
 
-            var incentive = await _context.Incentives.Where(x => x.StaffId == staffId && x.Status == 1 && x.IncentiveDate == incentiveDate).ToListAsync();
+            var _incentive = await _context.Incentives.Where(x => x.StaffId == staffId && x.Status == 1 && x.IncentiveDate == endDate).ToListAsync();
 
 
-            if (incentive.Count > 0)
+            if (_incentive.Count > 0)
             {
                 result.Incentives = new List<TherapistIncentiveDto>();
 
-                foreach (var item in incentive)
+                foreach (var item in _incentive)
                 {
 
                     result.Incentives.Add(new TherapistIncentiveDto

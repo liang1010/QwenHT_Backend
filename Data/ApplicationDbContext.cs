@@ -125,6 +125,7 @@ namespace QwenHT.Data
                 entity.Property(e => e.CreatedBy).HasDefaultValue("Migration");
                 entity.Property(e => e.CreatedAt);
                 entity.Property(e => e.LastUpdated);
+                entity.Property(e => e.IsDeletable).HasDefaultValue(true);
 
                 entity.HasIndex(e => new { e.Category, e.Value }).IsUnique(); // Prevent duplicate values in same category
             });

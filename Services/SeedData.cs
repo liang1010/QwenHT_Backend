@@ -372,6 +372,16 @@ namespace QwenHT.Services
                         RoleName = roleName,
                         NavigationItemId = SalesSammaryGuid // Home
                     });
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = CommissionGuid // Home
+                    });
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = CommissionTherapistGuid // Home
+                    });
                 }
                 await context.SaveChangesAsync();
 
@@ -414,7 +424,34 @@ namespace QwenHT.Services
 
                     // Staff Types
                     new OptionValue { Id = Guid.NewGuid(), Category = "Type", Value = "FULLTIME", Description = "Fulltime staff type", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
-                    new OptionValue { Id = Guid.NewGuid(), Category = "Type", Value = "THERAPIST", Description = "Therapist staff type", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" }
+                    new OptionValue { Id = Guid.NewGuid(), Category = "Type", Value = "THERAPIST", Description = "Therapist staff type", IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                
+                    // Incentive Types
+                    new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_HOURS_MF", Value = "120", Description = "Incentive Hours Malaysian Female", IsDeletable = false,IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_HOURS_MM", Value = "120", Description = "Incentive Hours Malaysian Male",IsDeletable = false, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_HOURS_NMF", Value = "120", Description = "Incentive Hours Non Malaysian Female", IsDeletable = false,IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_HOURS_NMM", Value = "120", Description = "Incentive Hours Non Malaysian Male",IsDeletable = false, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    
+                    new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_AMOUNT_MF", Value = "5", Description = "Incentive Amount Malaysian Female", IsDeletable = false,IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_AMOUNT_MM", Value = "5", Description = "Incentive Amount Malaysian Male",IsDeletable = false, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_AMOUNT_NMF", Value = "5", Description = "Incentive Amount Non Malaysian Female", IsDeletable = false,IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_AMOUNT_NMM", Value = "5", Description = "Incentive PriAmountce Non Malaysian Male",IsDeletable = false, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+
+                    new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE", Value = "STAFF UNIFORM DEPOSIT", Description = "STAFF UNIFORM DEPOSIT",IsDeletable = true, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_EXTRA", Value = "EXCEED TREATMENT HOURS", Description = "EXCEED TREATMENT HOURS",IsDeletable = false, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_EXTRA", Value = "EXTRA INCENTIVE", Description = "EXTRA INCENTIVE",IsDeletable = true, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_EXTRA", Value = "BIRTHDAY INCENTIVE", Description = "BIRTHDAY INCENTIVE",IsDeletable = true, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_EXTRA", Value = "REFUND STAFF UNIFROM DEPOSIT", Description = "REFUND STAFF UNIFROM DEPOSIT",IsDeletable = true, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_EXTRA", Value = "HOSTEL FEE", Description = "HOSTEL FEE",IsDeletable = true, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_EXTRA", Value = "CARD KESIHATAN", Description = "CARD KESIHATAN",IsDeletable = true, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_EXTRA", Value = "EXTRA COMM", Description = "EXTRA COMM",IsDeletable = true, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_EXTRA", Value = "GUARANTEE INCOME", Description = "GUARANTEE INCOME",IsDeletable = true, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_EXTRA", Value = "CASH ADVANCE", Description = "CASH ADVANCE",IsDeletable = true, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_EXTRA", Value = "COMMISSION WRONGLY KEY IN", Description = "COMMISSION WRONGLY KEY IN",IsDeletable = true, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_EXTRA", Value = "SOCSO CONTRIBUTION", Description = "SOCSO CONTRIBUTION",IsDeletable = true, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" }
+
+
+
                 };
 
                 foreach (var optionValue in optionValues)

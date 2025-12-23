@@ -17,6 +17,8 @@ namespace QwenHT.Models
 
         public bool IsActive { get; set; } = true;
 
+        public bool IsDeletable { get; set; } = true;
+
         [MaxLength(100)]
         public string? CreatedBy { get; set; }
 

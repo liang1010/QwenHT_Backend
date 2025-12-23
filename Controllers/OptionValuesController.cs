@@ -111,6 +111,8 @@ namespace QwenHT.Controllers
                 return BadRequest("An option value with the same category and value already exists.");
             }
 
+            // Check if an option value with the same category and value already exists (excluding this one) 
+
             existingOptionValue.Category = optionValue.Category;
             existingOptionValue.Value = optionValue.Value;
             existingOptionValue.Description = optionValue.Description;
@@ -128,6 +130,13 @@ namespace QwenHT.Controllers
         public async Task<IActionResult> DeleteOptionValue(Guid id)
         {
             var optionValue = await _context.OptionValues.FindAsync(id);
+
+
+            if (!optionValue.IsDeletable)
+            {
+                return BadRequest("An option value with non deletable flag.");
+            }
+
 
             if (optionValue == null)
             {
