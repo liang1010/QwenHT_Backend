@@ -25,6 +25,8 @@ namespace QwenHT.Controllers
 
             // Apply active filter
             query = query.Where(ov => ov.IsActive);
+            // Apply active filter
+            query = query.Where(ov => ov.IsDeletable);
 
             // Order by category and value
             var optionValues = await query
@@ -195,7 +197,9 @@ namespace QwenHT.Controllers
             }
 
             // Apply active filter only if not explicitly requesting inactive items
-            query = query.Where(ov => ov.IsActive);
+            //query = query.Where(ov => ov.IsActive);
+            // Apply active filter only if not explicitly requesting inactive items
+            query = query.Where(ov => ov.IsDeletable);
 
             // Determine the order to apply (before pagination)
             IOrderedQueryable<OptionValue> orderedQuery = query switch
