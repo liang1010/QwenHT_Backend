@@ -107,6 +107,7 @@ namespace QwenHT.Services
             Guid SalesSammaryGuid = Guid.NewGuid();
             Guid CommissionGuid = Guid.NewGuid();
             Guid CommissionTherapistGuid = Guid.NewGuid();
+            Guid CommissionSettingGuid = Guid.NewGuid();
 
             // Seed navigation items if they don't exist
             if (!context.NavigationItems.AsNoTracking().Any())
@@ -283,6 +284,16 @@ namespace QwenHT.Services
                         IsVisible = true,
                         ParentId = CommissionGuid // Home
                     },
+                    new NavigationItem
+                    {
+                        Id=CommissionSettingGuid,
+                        Name = "Settings",
+                        Route = "/app/commission/setting",
+                        Icon = "",
+                        Order = 2,
+                        IsVisible = true,
+                        ParentId = CommissionGuid // Home
+                    },
                 };
 
                 foreach (var item in childItems)
@@ -382,6 +393,11 @@ namespace QwenHT.Services
                         RoleName = roleName,
                         NavigationItemId = CommissionTherapistGuid // Home
                     });
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = CommissionSettingGuid // Home
+                    });
                 }
                 await context.SaveChangesAsync();
 
@@ -431,13 +447,21 @@ namespace QwenHT.Services
                     new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_HOURS_MM", Value = "120", Description = "Incentive Hours Malaysian Male",IsDeletable = false, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
                     new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_HOURS_NMF", Value = "120", Description = "Incentive Hours Non Malaysian Female", IsDeletable = false,IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
                     new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_HOURS_NMM", Value = "120", Description = "Incentive Hours Non Malaysian Male",IsDeletable = false, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
-                    
+
                     new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_AMOUNT_MF", Value = "5", Description = "Incentive Amount Malaysian Female", IsDeletable = false,IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
                     new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_AMOUNT_MM", Value = "5", Description = "Incentive Amount Malaysian Male",IsDeletable = false, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
                     new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_AMOUNT_NMF", Value = "5", Description = "Incentive Amount Non Malaysian Female", IsDeletable = false,IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
                     new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_AMOUNT_NMM", Value = "5", Description = "Incentive PriAmountce Non Malaysian Male",IsDeletable = false, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
 
-                    new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_EXTRA", Value = "STAFF UNIFORM DEPOSIT", Description = "STAFF UNIFORM DEPOSIT",IsDeletable = true, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "TREATMENT_PERCENT", Value = "8", Description = "Treatment Incentive Percentage", IsDeletable = false,IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "PRODUCT_PERCENT_TIER_1", Value = "5", Description = "Product Incentive Target Tier 1 Percentage",IsDeletable = false, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "PRODUCT_PERCENT_TIER_2", Value = "10", Description = "Product Incentive Target Tier 2 Percentage", IsDeletable = false,IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+                    new OptionValue { Id = Guid.NewGuid(), Category = "PRODUCT_TARGET", Value = "1000", Description = "Product Incentive Target",IsDeletable = false, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
+
+
+
+
+new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_EXTRA", Value = "STAFF UNIFORM DEPOSIT", Description = "STAFF UNIFORM DEPOSIT",IsDeletable = true, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
 new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_EXTRA", Value = "EXCEED TREATMENT HOURS", Description = "EXCEED TREATMENT HOURS",IsDeletable = false, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
 new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_EXTRA", Value = "EXTRA INCENTIVE", Description = "EXTRA INCENTIVE",IsDeletable = true, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
 new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_EXTRA", Value = "BIRTHDAY INCENTIVE", Description = "BIRTHDAY INCENTIVE",IsDeletable = true, IsActive = true, CreatedAt = DateTime.UtcNow, LastUpdated = DateTime.UtcNow, LastModifiedBy = "Seeder" },
@@ -454,13 +478,19 @@ new OptionValue { Id = Guid.NewGuid(), Category = "INCENTIVE_EXTRA", Value = "SO
 
                 };
 
+
+
                 foreach (var optionValue in optionValues)
                 {
-                    context.OptionValues.Add(optionValue);
+                    //context.OptionValues.Add(optionValue);
                 }
 
-                await context.SaveChangesAsync();
+                //await context.SaveChangesAsync();
             }
+
+
+
+
         }
 
     }

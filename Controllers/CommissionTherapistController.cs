@@ -230,7 +230,8 @@ namespace QwenHT.Controllers
         public async Task<ActionResult<IEnumerable<ActiveStaffDto>>> GetActiveStaff()
         {
             var activeStaff = await _context.Staff
-                .Where(s => s.Status == 1) // Only return staff with status = 1
+                .Where(s => s.Status == 1 &&
+        s.Employments.Any(x => x.Type.ToLower() == "therapist")) // Only return staff with status = 1
                 .Select(s => new ActiveStaffDto
                 {
                     Id = s.Id,
@@ -259,6 +260,8 @@ namespace QwenHT.Controllers
             [FromQuery] DateTimeOffset? endDate = null,
             [FromQuery] bool? incentive = false)
         {
+            // Get the current user for CreatedBy field
+            var currentUser = User?.Identity?.Name ?? "System";
             // Step 1: Fetch all required sales data in a single query for efficiency
             var salesData = await GetSalesDataAsync(staffId, startDate, endDate);
 
@@ -345,25 +348,25 @@ namespace QwenHT.Controllers
 
                             if (exist == null)
                                 _context.Incentives.Add(new Incentive
-                            {
-                                Id = Guid.NewGuid(),
-                                Amount = (decimal)result.RateBase.AllPeriodHrs * incentiveAmount,
-                                IncentiveDate = endDate.Value,
-                                Remark = "EXCEED " + incentivehrs + " TREATMENT HOURS INCENTIVE(" + result.RateBase.AllPeriodHrs + " x " + incentiveAmount + ")",
-                                Description = "EXCEED TREATMENT HOURS",
-                                StaffId = staffId,
-                                Status = 1,
-                                CreatedBy = "System",
-                                CreatedAt = DateTimeOffset.UtcNow,
-                                LastUpdated = DateTimeOffset.UtcNow,
-                                LastModifiedBy = "System"
-                            });
+                                {
+                                    Id = Guid.NewGuid(),
+                                    Amount = (decimal)result.RateBase.AllPeriodHrs * incentiveAmount,
+                                    IncentiveDate = endDate.Value,
+                                    Remark = "EXCEED " + incentivehrs + " TREATMENT HOURS INCENTIVE(" + result.RateBase.AllPeriodHrs + " x " + incentiveAmount + ")",
+                                    Description = "EXCEED TREATMENT HOURS",
+                                    StaffId = staffId,
+                                    Status = 1,
+                                    CreatedBy = currentUser,
+                                    CreatedAt = DateTimeOffset.UtcNow,
+                                    LastUpdated = DateTimeOffset.UtcNow,
+                                    LastModifiedBy = currentUser
+                                });
                             else
                             {
                                 exist.Amount = (decimal)result.RateBase.AllPeriodHrs * incentiveAmount;
                                 exist.Remark = "EXCEED " + incentivehrs + " TREATMENT HOURS INCENTIVE(" + result.RateBase.AllPeriodHrs + " x " + incentiveAmount + ")";
                                 exist.LastUpdated = DateTimeOffset.UtcNow;
-                                exist.LastModifiedBy = "System";
+                                exist.LastModifiedBy = currentUser;
 
                                 _context.Incentives.Update(exist);
                             }
@@ -378,33 +381,36 @@ namespace QwenHT.Controllers
                 {
                     result.GuaranteeIncome = await CalculateTherapistGuaranteeIncomeAsync(staffId, staffCompensation, startDate.Value, endDate);
 
-                    var exist = await _context.Incentives.Where(x => x.StaffId == staffId && x.IncentiveDate == endDate.Value && x.Description == "GUARANTEE INCOME" && x.Status == 1).FirstOrDefaultAsync();
-
-                    if (exist == null)
-                        _context.Incentives.Add(new Incentive
-                        {
-                            Id = Guid.NewGuid(),
-                            Amount = result.GuaranteeIncome.GuaranteeIncomePaid,
-                            IncentiveDate = endDate.Value,
-                            Remark = "GUARANTEE INCOME AMOUNT " + staffCompensation.GuaranteeIncome,
-                            Description = "GUARANTEE INCOME",
-                            StaffId = staffId,
-                            Status = 1,
-                            CreatedBy = "System",
-                            CreatedAt = DateTimeOffset.UtcNow,
-                            LastUpdated = DateTimeOffset.UtcNow,
-                            LastModifiedBy = "System"
-                        });
-                    else
+                    if (result.GuaranteeIncome.GuaranteeIncomePaid > 0)
                     {
-                        exist.Amount = result.GuaranteeIncome.GuaranteeIncomePaid;
-                        exist.Remark = "GUARANTEE INCOME AMOUNT " + staffCompensation.GuaranteeIncome;
-                        exist.LastUpdated = DateTimeOffset.UtcNow;
-                        exist.LastModifiedBy = "System";
+                        var exist = await _context.Incentives.Where(x => x.StaffId == staffId && x.IncentiveDate == endDate.Value && x.Description == "GUARANTEE INCOME" && x.Status == 1).FirstOrDefaultAsync();
 
-                        _context.Incentives.Update(exist);
+                        if (exist == null)
+                            _context.Incentives.Add(new Incentive
+                            {
+                                Id = Guid.NewGuid(),
+                                Amount = result.GuaranteeIncome.GuaranteeIncomePaid,
+                                IncentiveDate = endDate.Value,
+                                Remark = "GUARANTEE INCOME AMOUNT " + staffCompensation.GuaranteeIncome,
+                                Description = "GUARANTEE INCOME",
+                                StaffId = staffId,
+                                Status = 1,
+                                CreatedBy = currentUser,
+                                CreatedAt = DateTimeOffset.UtcNow,
+                                LastUpdated = DateTimeOffset.UtcNow,
+                                LastModifiedBy = currentUser
+                            });
+                        else
+                        {
+                            exist.Amount = result.GuaranteeIncome.GuaranteeIncomePaid;
+                            exist.Remark = "GUARANTEE INCOME AMOUNT " + staffCompensation.GuaranteeIncome;
+                            exist.LastUpdated = DateTimeOffset.UtcNow;
+                            exist.LastModifiedBy = currentUser;
+
+                            _context.Incentives.Update(exist);
+                        }
+                        _context.SaveChanges();
                     }
-                    _context.SaveChanges();
                 }
             }
 
@@ -532,15 +538,15 @@ namespace QwenHT.Controllers
         {
             var response = new TherapistRateBasedCommissionDto
             {
-                SelectedPeriodHrs = (commissions.Sum(x => x.FootMins) + commissions.Sum(x => x.BodyMins)) / 60.00,
+                SelectedPeriodHrs = Math.Round((commissions.Sum(x => x.FootMins) + commissions.Sum(x => x.BodyMins)) / 60.00, 2),
                 TotalFootMins = commissions.Sum(x => x.FootMins),
                 TotalBodyMins = commissions.Sum(x => x.BodyMins),
                 TotalStaffCommission = commissions.Sum(x => x.StaffCommission),
                 TotalExtraCommission = commissions.Sum(x => x.ExtraCommission)
             };
 
-            response.TotalFootCommission = comp.FootRatePerHour * (response.TotalFootMins / 60m);
-            response.TotalBodyCommission = comp.BodyRatePerHour * (response.TotalBodyMins / 60m); // Fixed: was FootRate!
+            response.TotalFootCommission = Math.Round(comp.FootRatePerHour * (response.TotalFootMins / 60m), 2);
+            response.TotalBodyCommission = Math.Round(comp.BodyRatePerHour * (response.TotalBodyMins / 60m), 2); // Fixed: was FootRate!
             response.TotalCommission = response.TotalFootCommission + response.TotalBodyCommission
                                        + response.TotalStaffCommission + response.TotalExtraCommission;
 
@@ -554,7 +560,7 @@ namespace QwenHT.Controllers
         {
             var response = new TherapistPercentageBasedCommissionDto
             {
-                SelectedPeriodHrs = (commissions.Sum(x => x.FootMins) + commissions.Sum(x => x.BodyMins)) / 60.00,
+                SelectedPeriodHrs = Math.Round((commissions.Sum(x => x.FootMins) + commissions.Sum(x => x.BodyMins)) / 60.00, 2),
                 TotalStaffCommission = commissions.Sum(x => x.StaffCommission),
                 TotalExtraCommission = commissions.Sum(x => x.ExtraCommission),
                 TotalPrice = commissions.Sum(x => x.Price),

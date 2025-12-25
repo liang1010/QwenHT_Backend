@@ -26,6 +26,7 @@ namespace QwenHT.Controllers
                     new Claim("username", user.UserName ?? ""),
                     new Claim("email", user.Email ?? ""),
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                    new Claim(ClaimTypes.Name, user.UserName ?? ""),
                 };
 
                 foreach (var userRole in userRoles)
@@ -81,6 +82,7 @@ namespace QwenHT.Controllers
                 new Claim("username", user.UserName ?? ""),
                 new Claim("email", user.Email ?? ""),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(ClaimTypes.Name, user.UserName ?? ""),
             };
 
             foreach (var userRole in userRoles)

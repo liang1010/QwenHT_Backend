@@ -100,13 +100,13 @@ namespace QwenHT.Models
         public Guid StaffId { get; set; }
         public Staff Staff { get; set; } = default!;
 
-        [Required, MaxLength(255)]
-        public string BankName { get; set; } = default!;
+        [MaxLength(255)]
+        public string? BankName { get; set; } = default!;
 
-        [Required, MaxLength(255)]
-        public string AccountHolderName { get; set; } = default!;
+        [MaxLength(255)]
+        public string? AccountHolderName { get; set; } = default!;
 
-        [Required, MaxLength(50)]
-        public string AccountNumber { get; set; } = default!;
+        [MaxLength(50)]
+        public string? AccountNumber { get; set; } = default!;
     }
 }
