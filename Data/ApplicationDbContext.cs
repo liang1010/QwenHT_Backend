@@ -1,14 +1,21 @@
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using QwenHT.Models;
+using System.Diagnostics;
+using System.Security.Claims;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace QwenHT.Data
 {
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor httpContextAccessor)
             : base(options)
         {
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public DbSet<NavigationItem> NavigationItems { get; set; }
@@ -23,7 +30,142 @@ namespace QwenHT.Data
         public DbSet<Incentive> Incentives { get; set; }
         public DbSet<TherapistPayout> TherapistPayouts { get; set; }
         public DbSet<ConsultantPayout> ConsultantPayouts { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
+        public override int SaveChanges()
+        {
+            var auditEntries = CollectAuditEntries();
+            var result = base.SaveChanges();
 
+            if (auditEntries.Any())
+            {
+                // Insert audit logs (they are regular entities)
+                AuditLogs.AddRange(auditEntries);
+                base.SaveChanges(); // Save audit logs in a second roundtrip
+            }
+
+            return result;
+        }
+
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            var auditEntries = CollectAuditEntries();
+            var result = await base.SaveChangesAsync(cancellationToken);
+
+            if (auditEntries.Any())
+            {
+                AuditLogs.AddRange(auditEntries);
+                await base.SaveChangesAsync(cancellationToken);
+            }
+
+            return result;
+        }
+
+        private List<AuditLog> CollectAuditEntries()
+        {
+            var entries = ChangeTracker.Entries()
+                .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+                // 🔥 Exclude AuditLog itself to prevent infinite loop
+                .Where(e => e.Entity.GetType() != typeof(AuditLog))
+                .ToList();
+
+            var auditLogs = new List<AuditLog>();
+
+            foreach (var entry in entries)
+            {
+                var entityName = entry.Entity.GetType().Name;
+                var id = GetEntityKey(entry)?.ToString() ?? "unknown";
+
+                var audit = new AuditLog
+                {
+                    TableName = entityName,
+                    RecordId = id,
+                    ChangedAt = DateTime.UtcNow,
+                    ChangedBy = GetCurrentUser(), // Implement as needed
+                    ActionType = entry.State switch
+                    {
+                        EntityState.Added => "CREATE",
+                        EntityState.Modified => "UPDATE",
+                        EntityState.Deleted => "DELETE",
+                        _ => "UNKNOWN"
+                    }
+                };
+
+                var currentJson = JsonSerializer.Serialize(entry.Entity, StandardJsonOptions);
+
+                if (entry.State == EntityState.Added)
+                {
+                    audit.NewValues = currentJson;
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    var originalObj = GetDatabaseValuesAsObject(entry);
+                    audit.OriginalValues = originalObj != null ? JsonSerializer.Serialize(originalObj, StandardJsonOptions) : null;
+                    audit.NewValues = currentJson;
+                }
+                else if (entry.State == EntityState.Deleted)
+                {
+                    var originalObj = GetDatabaseValuesAsObject(entry);
+                    audit.OriginalValues = originalObj != null ? JsonSerializer.Serialize(originalObj, StandardJsonOptions) : null;
+                }
+
+                auditLogs.Add(audit);
+            }
+
+            return auditLogs;
+        }
+
+        private static readonly JsonSerializerOptions StandardJsonOptions = new()
+        {
+            WriteIndented = false,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            ReferenceHandler = ReferenceHandler.IgnoreCycles
+        };
+
+        private object? GetDatabaseValuesAsObject(EntityEntry entry)
+        {
+            try
+            {
+                var dbValues = entry.State == EntityState.Deleted
+                    ? entry.GetDatabaseValues()  // Issues SELECT!
+                    : entry.OriginalValues;
+
+                if (dbValues == null) return null;
+
+                // ✅ Correct way: iterate PropertyNames
+                var dict = new Dictionary<string, object?>();
+                foreach (var propName in dbValues.Properties.Select(p => p.Name))
+                {
+                    dict[propName] = dbValues[propName];
+                }
+
+                return dict;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to get original values: {ex.Message}");
+                return null;
+            }
+        }
+
+        private object? GetEntityKey(EntityEntry entry)
+        {
+            // Better: use EF Core's metadata to get key
+            var keyProp = entry.Metadata.FindPrimaryKey()?.Properties.FirstOrDefault();
+            if (keyProp != null)
+            {
+                return entry.Property(keyProp.Name).CurrentValue;
+            }
+
+            // Fallback to "Id" property
+            return entry.Entity.GetType().GetProperty("Id")?.GetValue(entry.Entity);
+        }
+
+        private string? GetCurrentUser()
+        {
+            // Example: if using ASP.NET Core with claims
+            return _httpContextAccessor?.HttpContext?.User?.FindFirstValue(ClaimTypes.Name);
+            //return "SYSTEM"; // Replace with real user context
+        }
 
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -254,4 +396,15 @@ namespace QwenHT.Data
 
         }
     }
+}
+public class AuditLog
+{
+    public long Id { get; set; }
+    public string TableName { get; set; } = null!;
+    public string RecordId { get; set; } = null!;
+    public string ActionType { get; set; } = null!; // "CREATE", "UPDATE", "DELETE"
+    public string? ChangedBy { get; set; }
+    public DateTime ChangedAt { get; set; }
+    public string? OriginalValues { get; set; } // JSON
+    public string? NewValues { get; set; }      // JSON
 }

@@ -253,7 +253,7 @@ namespace QwenHT.Services
                         Id=KeyInGuid,
                         Name = "Sales Key In",
                         Route = "/app/sales/key-in",
-                        Icon = "pi pi-fw pi-credit-card",
+                        Icon = "pi pi-pencil",
                         Order = 1,
                         IsVisible = true,
                         ParentId = SalesGuid // Home
@@ -283,7 +283,7 @@ namespace QwenHT.Services
                         Id=CommissionTherapistGuid,
                         Name = "Therapist",
                         Route = "/app/commission/therapist",
-                        Icon = "",
+                        Icon = "pi pi-calculator",
                         Order = 1,
                         IsVisible = true,
                         ParentId = CommissionGuid // Home
@@ -293,7 +293,7 @@ namespace QwenHT.Services
                         Id=CommissionConsultantGuid,
                         Name = "Consultant",
                         Route = "/app/commission/consultant",
-                        Icon = "",
+                        Icon = "pi pi-calculator",
                         Order = 2,
                         IsVisible = true,
                         ParentId = CommissionGuid // Home
@@ -303,7 +303,7 @@ namespace QwenHT.Services
                         Id=CommissionSettingGuid,
                         Name = "Settings",
                         Route = "/app/commission/setting",
-                        Icon = "",
+                        Icon = "pi pi-cog",
                         Order = 3,
                         IsVisible = true,
                         ParentId = CommissionGuid // Home
@@ -313,7 +313,7 @@ namespace QwenHT.Services
                         Id=PayoutTherapistGuid,
                         Name = "Therapist",
                         Route = "/app/payout/therapist",
-                        Icon = "",
+                        Icon = "pi pi-money-bill",
                         Order = 1,
                         IsVisible = true,
                         ParentId = PayoutGuid // Home
@@ -323,7 +323,7 @@ namespace QwenHT.Services
                         Id=PayoutConsultantGuid,
                         Name = "Consultant",
                         Route = "/app/payout/consultant",
-                        Icon = "",
+                        Icon = "pi pi-money-bill",
                         Order = 2,
                         IsVisible = true,
                         ParentId = PayoutGuid // Home

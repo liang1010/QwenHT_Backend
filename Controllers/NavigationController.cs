@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using QwenHT.Models;
-using QwenHT.Services.Navigation;
+using QwenHT.Services;
 
 namespace QwenHT.Controllers
 {

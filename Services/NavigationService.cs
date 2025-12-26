@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using QwenHT.Data;
 using QwenHT.Models;
 
-namespace QwenHT.Services.Navigation
+namespace QwenHT.Services
 {
     public interface INavigationService
     {
