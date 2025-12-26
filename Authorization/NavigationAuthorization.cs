@@ -65,6 +65,8 @@ namespace QwenHT.Authorization
                 navigationRoute = "app/sales/summary";
             else if (requestPath.Contains("/api/commission/therapist"))
                 navigationRoute = "app/commission/therapist";
+            else if (requestPath.Contains("/api/commission/consultant"))
+                navigationRoute = "app/commission/consultant";
             else if (requestPath.Contains("/api/commission/setting"))
                 navigationRoute = "app/commission/setting";
 
