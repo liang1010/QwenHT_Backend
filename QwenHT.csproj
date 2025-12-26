@@ -29,8 +29,4 @@
 	<PackageReference Include="iTextSharp.LGPLv2.Core" Version="3.4.22" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Folder Include="Migrations\" />
-	</ItemGroup>
-
 </Project>

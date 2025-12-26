@@ -104,7 +104,7 @@ namespace QwenHT.Controllers
             [FromQuery] DateTimeOffset? endDate = null)
         {
 
-            var staff = await _context.Staff.Where(x => x.Id == staffId).FirstOrDefaultAsync();
+            var staff = await _context.Staffs.Where(x => x.Id == staffId).FirstOrDefaultAsync();
             // Step 1: Fetch all required sales data in a single query for efficiency
             var salesData = await GetSalesDataAsync(staffId, startDate, endDate);
 
@@ -234,7 +234,7 @@ namespace QwenHT.Controllers
             [FromQuery] DateTimeOffset? endDate = null)
         {
             var username = User?.Claims?.FirstOrDefault(c => c.Type == "username")?.Value ?? "Unknown";
-            var staff = await _context.Staff.Where(x => x.Id == staffId).FirstOrDefaultAsync();
+            var staff = await _context.Staffs.Where(x => x.Id == staffId).FirstOrDefaultAsync();
             // Step 1: Fetch all required sales data in a single query for efficiency
             var salesData = await GetSalesDataAsync(staffId, startDate, endDate);
 
@@ -382,7 +382,7 @@ namespace QwenHT.Controllers
         [HttpGet("therapist/staff/active")]
         public async Task<ActionResult<IEnumerable<ActiveStaffDto>>> GetActiveStaff()
         {
-            var activeStaff = await _context.Staff
+            var activeStaff = await _context.Staffs
                 .Where(s => s.Status == 1 &&
         s.Employments.Any(x => x.Type.ToLower() == "therapist")) // Only return staff with status = 1
                 .Select(s => new ActiveStaffDto
@@ -432,7 +432,7 @@ namespace QwenHT.Controllers
             var staffCompensation = await _context.StaffCompensations
                 .FirstOrDefaultAsync(x => x.StaffId == staffId);
 
-            var staff = await _context.Staff
+            var staff = await _context.Staffs
                 .FirstOrDefaultAsync(x => x.Id == staffId);
 
             // If no compensation setup is found, return basic commission data only

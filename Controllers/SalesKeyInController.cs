@@ -14,7 +14,7 @@ namespace QwenHT.Controllers
         [HttpGet("sales-key-in/staff/active")]
         public async Task<ActionResult<IEnumerable<ActiveStaffDto>>> GetActiveStaff()
         {
-            var activeStaff = await _context.Staff
+            var activeStaff = await _context.Staffs
                 .Where(s => s.Status == 1) // Only return staff with status = 1
                 .Select(s => new ActiveStaffDto
                 {
@@ -83,7 +83,7 @@ namespace QwenHT.Controllers
             }
 
             // Validate that the provided StaffId exists
-            var staff = await _context.Staff.FindAsync(request.StaffId);
+            var staff = await _context.Staffs.FindAsync(request.StaffId);
             if (staff == null)
             {
                 return BadRequest(new { error = "Invalid Staff ID" });

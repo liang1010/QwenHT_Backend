@@ -240,33 +240,6 @@ namespace QwenHT.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("QwenHT.Models.BankAccount", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("AccountHolderName")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("AccountNumber")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("BankName")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<Guid>("StaffId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StaffId");
-
-                    b.ToTable("BankAccounts");
-                });
-
             modelBuilder.Entity("QwenHT.Models.ConsultantPayout", b =>
                 {
                     b.Property<Guid>("Id")
@@ -680,7 +653,34 @@ namespace QwenHT.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Staff");
+                    b.ToTable("Staffs");
+                });
+
+            modelBuilder.Entity("QwenHT.Models.StaffBankAccount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AccountHolderName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("AccountNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("BankName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid>("StaffId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StaffId");
+
+                    b.ToTable("StaffBankAccounts");
                 });
 
             modelBuilder.Entity("QwenHT.Models.StaffCompensation", b =>
@@ -864,17 +864,6 @@ namespace QwenHT.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("QwenHT.Models.BankAccount", b =>
-                {
-                    b.HasOne("QwenHT.Models.Staff", "Staff")
-                        .WithMany("BankAccounts")
-                        .HasForeignKey("StaffId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Staff");
-                });
-
             modelBuilder.Entity("QwenHT.Models.ConsultantPayout", b =>
                 {
                     b.HasOne("QwenHT.Models.Staff", "Staff")
@@ -934,6 +923,17 @@ namespace QwenHT.Migrations
                         .IsRequired();
 
                     b.Navigation("Menu");
+
+                    b.Navigation("Staff");
+                });
+
+            modelBuilder.Entity("QwenHT.Models.StaffBankAccount", b =>
+                {
+                    b.HasOne("QwenHT.Models.Staff", "Staff")
+                        .WithMany("BankAccounts")
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Staff");
                 });

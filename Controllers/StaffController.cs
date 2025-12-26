@@ -14,7 +14,7 @@ namespace QwenHT.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<StaffDto>>> GetStaff()
         {
-            var staff = await _context.Staff
+            var staff = await _context.Staffs
                 .AsNoTracking()
                 .Include(s => s.Employments)
                 .Include(s => s.Compensations)
@@ -35,7 +35,7 @@ namespace QwenHT.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<StaffDto>> GetStaff(Guid id)
         {
-            var staff = await _context.Staff
+            var staff = await _context.Staffs
                 .AsNoTracking()
                 .Include(s => s.Employments)
                 .Include(s => s.Compensations)
@@ -80,7 +80,7 @@ namespace QwenHT.Controllers
                 LastModifiedBy = username // Also set as last modified by initial creator
             };
 
-            _context.Staff.Add(staff);
+            _context.Staffs.Add(staff);
             await _context.SaveChangesAsync();
 
             // Add compensation details if provided
@@ -118,7 +118,7 @@ namespace QwenHT.Controllers
             await _context.SaveChangesAsync();
 
 
-            var bank = new BankAccount
+            var bank = new StaffBankAccount
             {
                 Id = Guid.NewGuid(),
                 StaffId = staff.Id,
@@ -127,7 +127,7 @@ namespace QwenHT.Controllers
                 AccountNumber = staffDto.AccountNumber
 
             };
-            _ = _context.BankAccounts.Add(bank);
+            _ = _context.StaffBankAccounts.Add(bank);
             await _context.SaveChangesAsync();
 
             var createdStaffDto = MapToDto(staff);
@@ -137,7 +137,7 @@ namespace QwenHT.Controllers
         [HttpPost("{id}")]
         public async Task<IActionResult> UpdateStaff(Guid id, UpdateStaffDto staffDto)
         {
-            var staff = await _context.Staff
+            var staff = await _context.Staffs
                 .Include(s => s.Employments)
                 .Include(s => s.Compensations)
                 .Include(s => s.BankAccounts)
@@ -236,7 +236,7 @@ namespace QwenHT.Controllers
                 if (existingBankAccount == null)
                 {
                     // Create new bank account record
-                    var newBankAccount = new BankAccount
+                    var newBankAccount = new StaffBankAccount
                     {
                         Id = Guid.NewGuid(),
                         StaffId = staff.Id,
@@ -244,7 +244,7 @@ namespace QwenHT.Controllers
                         AccountHolderName = staffDto.AccountHolderName ?? "",
                         AccountNumber = staffDto.AccountNumber ?? ""
                     };
-                    _ = _context.BankAccounts.Add(newBankAccount);
+                    _ = _context.StaffBankAccounts.Add(newBankAccount);
                 }
                 else
                 {
@@ -255,7 +255,7 @@ namespace QwenHT.Controllers
                 }
             }
 
-            _context.Staff.Update(staff);
+            _context.Staffs.Update(staff);
             await _context.SaveChangesAsync();
 
             return Ok(MapToDto(staff));
@@ -264,7 +264,7 @@ namespace QwenHT.Controllers
         [HttpPost("{id}/delete")]
         public async Task<IActionResult> DeleteStaff(Guid id)
         {
-            var staff = await _context.Staff.FindAsync(id);
+            var staff = await _context.Staffs.FindAsync(id);
             if (staff == null)
             {
                 return NotFound();
@@ -274,7 +274,7 @@ namespace QwenHT.Controllers
             staff.Status = 0; // Inactive
             staff.LastUpdated = DateTimeOffset.UtcNow;
 
-            _context.Staff.Update(staff);
+            _context.Staffs.Update(staff);
             await _context.SaveChangesAsync();
 
             return Ok();
@@ -293,7 +293,7 @@ namespace QwenHT.Controllers
             if (pageSize < 1) pageSize = 10;
 
             // Build the base query using the DbContext WITH INCLUDES for related entities
-            IQueryable<Staff> query = _context.Staff
+            IQueryable<Staff> query = _context.Staffs
                 .AsNoTracking()
                 .Include(s => s.Employments)
                 .Include(s => s.Compensations)

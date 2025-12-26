@@ -95,7 +95,6 @@ namespace QwenHT.Services
             Guid ManageGuid = Guid.NewGuid();
             Guid DashboardGuid = Guid.NewGuid();
             Guid UserGuid = Guid.NewGuid();
-            Guid LandingGuid = Guid.NewGuid();
             Guid NaviGuid = Guid.NewGuid();
             Guid StaffGuid = Guid.NewGuid();
             Guid OptionValueGuid = Guid.NewGuid();
@@ -136,7 +135,7 @@ namespace QwenHT.Services
                         Name = "Manage",
                         Route = "",
                         Icon = "",
-                        Order = 3,
+                        Order = 5,
                         IsVisible = true
                     },
                     new NavigationItem
@@ -154,7 +153,7 @@ namespace QwenHT.Services
                         Name = "Commission",
                         Route = "",
                         Icon = "",
-                        Order = 4,
+                        Order = 3,
                         IsVisible = true
                     },
                     new NavigationItem
@@ -198,16 +197,6 @@ namespace QwenHT.Services
                         Order = 1,
                         IsVisible = true,
                         ParentId = ManageGuid // Manage
-                    },
-                    new NavigationItem
-                    {
-                        Id=LandingGuid,
-                        Name = "Landing",
-                        Route = "/app/landing",
-                        Icon = "pi pi-fw pi-globe",
-                        Order = 3,
-                        IsVisible = true,
-                        ParentId = HomeGuid // Home
                     },
                     new NavigationItem
                     {
@@ -377,11 +366,6 @@ namespace QwenHT.Services
                     {
                         RoleName = roleName,
                         NavigationItemId = UserGuid // Home
-                    });
-                    context.RoleNavigations.Add(new RoleNavigation
-                    {
-                        RoleName = roleName,
-                        NavigationItemId = LandingGuid // Home
                     });
                     context.RoleNavigations.Add(new RoleNavigation
                     {

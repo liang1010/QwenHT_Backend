@@ -101,7 +101,7 @@ namespace QwenHT.Controllers
         [HttpGet("consultant/staff/active")]
         public async Task<ActionResult<IEnumerable<ActiveStaffDto>>> GetActiveStaff()
         {
-            var activeStaff = await _context.Staff
+            var activeStaff = await _context.Staffs
                 .Where(s => s.Status == 1 &&
         s.Employments.Any(x => x.Type.ToLower() == "fulltime")) // Only return staff with status = 1
                 .Select(s => new ActiveStaffDto
@@ -149,7 +149,7 @@ namespace QwenHT.Controllers
             };
 
 
-            var staff = await _context.Staff
+            var staff = await _context.Staffs
                 .FirstOrDefaultAsync(x => x.Id == staffId);
 
 
@@ -230,7 +230,7 @@ namespace QwenHT.Controllers
             };
 
 
-            var staff = await _context.Staff
+            var staff = await _context.Staffs
                 .FirstOrDefaultAsync(x => x.Id == staffId);
 
 
@@ -331,7 +331,7 @@ namespace QwenHT.Controllers
             };
 
 
-            var staff = await _context.Staff
+            var staff = await _context.Staffs
                 .FirstOrDefaultAsync(x => x.Id == staffId);
 
 

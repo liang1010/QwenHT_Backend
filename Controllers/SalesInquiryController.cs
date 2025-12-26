@@ -164,7 +164,7 @@ namespace QwenHT.Controllers
             // Validate that the provided StaffId exists (if changing)
             if (request.StaffId != sales.StaffId)
             {
-                var staff = await _context.Staff.FindAsync(request.StaffId);
+                var staff = await _context.Staffs.FindAsync(request.StaffId);
                 if (staff == null)
                 {
                     return BadRequest(new { error = "Invalid Staff ID" });

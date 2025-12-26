@@ -45,7 +45,7 @@ namespace QwenHT.Models
         // Navigation properties
         public ICollection<StaffEmployment> Employments { get; set; } = new List<StaffEmployment>();
         public ICollection<StaffCompensation> Compensations { get; set; } = new List<StaffCompensation>();
-        public ICollection<BankAccount> BankAccounts { get; set; } = new List<BankAccount>();
+        public ICollection<StaffBankAccount> BankAccounts { get; set; } = new List<StaffBankAccount>();
         public ICollection<Sales> SalesRecords { get; set; } = new List<Sales>();
         public ICollection<Incentive> IncentiveRecords { get; set; } = new List<Incentive>();
         public ICollection<TherapistPayout> TherapistPayouts { get; set; } = new List<TherapistPayout>();
@@ -96,7 +96,7 @@ namespace QwenHT.Models
         public decimal GuaranteeIncome { get; set; }
     }
 
-    public class BankAccount
+    public class StaffBankAccount
     {
         public Guid Id { get; set; }
 

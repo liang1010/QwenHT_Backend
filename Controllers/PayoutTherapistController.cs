@@ -57,7 +57,7 @@ namespace QwenHT.Controllers
                 .ToList(); // Materialize ID list
 
             // 4. Fetch staff info (with optional therapist filter)
-            var staffs = _context.Staff
+            var staffs = _context.Staffs
                 .AsNoTracking()
                 .Where(s => staffIds.Contains(s.Id))
                 .Where(s => s.Employments.Any(emp => emp.Type == "therapist")) // optional
@@ -74,7 +74,7 @@ namespace QwenHT.Controllers
             foreach (var staff in staffs)
             {
 
-                var staffBank = await _context.BankAccounts
+                var staffBank = await _context.StaffBankAccounts
                     .FirstOrDefaultAsync(x => x.StaffId == staff.Id);
 
                 var staffEmp = await _context.StaffEmployments

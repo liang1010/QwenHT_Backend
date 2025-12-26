@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using QwenHT.Models;
-using System.Reflection.Emit;
 
 namespace QwenHT.Data
 {
@@ -14,10 +13,10 @@ namespace QwenHT.Data
 
         public DbSet<NavigationItem> NavigationItems { get; set; }
         public DbSet<RoleNavigation> RoleNavigations { get; set; }
-        public DbSet<Staff> Staff { get; set; }
+        public DbSet<Staff> Staffs { get; set; }
         public DbSet<StaffEmployment> StaffEmployments { get; set; }
         public DbSet<StaffCompensation> StaffCompensations { get; set; }
-        public DbSet<BankAccount> BankAccounts { get; set; }
+        public DbSet<StaffBankAccount> StaffBankAccounts { get; set; }
         public DbSet<OptionValue> OptionValues { get; set; }
         public DbSet<Menu> Menus { get; set; }
         public DbSet<Sales> Sales { get; set; }
@@ -106,7 +105,7 @@ namespace QwenHT.Data
             });
 
             // BankAccount
-            builder.Entity<BankAccount>(entity =>
+            builder.Entity<StaffBankAccount>(entity =>
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Id).ValueGeneratedNever();
