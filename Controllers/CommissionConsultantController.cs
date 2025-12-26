@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using QwenHT.Data;
 using QwenHT.Models;
 using QwenHT.Utilities;
+using System.Text.Json.Serialization;
 using static QwenHT.Controllers.SalesKeyInController;
 
 namespace QwenHT.Controllers

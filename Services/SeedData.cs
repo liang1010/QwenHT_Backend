@@ -107,7 +107,13 @@ namespace QwenHT.Services
             Guid SalesSammaryGuid = Guid.NewGuid();
             Guid CommissionGuid = Guid.NewGuid();
             Guid CommissionTherapistGuid = Guid.NewGuid();
+            Guid CommissionConsultantGuid = Guid.NewGuid();
             Guid CommissionSettingGuid = Guid.NewGuid();
+
+
+            Guid PayoutGuid = Guid.NewGuid();
+            Guid PayoutTherapistGuid = Guid.NewGuid();
+            Guid PayoutConsultantGuid = Guid.NewGuid();
 
             // Seed navigation items if they don't exist
             if (!context.NavigationItems.AsNoTracking().Any())
@@ -145,6 +151,15 @@ namespace QwenHT.Services
                     new NavigationItem
                     {
                         Id = CommissionGuid,
+                        Name = "Commission",
+                        Route = "",
+                        Icon = "",
+                        Order = 4,
+                        IsVisible = true
+                    },
+                    new NavigationItem
+                    {
+                        Id = PayoutGuid,
                         Name = "Commission",
                         Route = "",
                         Icon = "",
@@ -286,13 +301,43 @@ namespace QwenHT.Services
                     },
                     new NavigationItem
                     {
-                        Id=CommissionSettingGuid,
-                        Name = "Settings",
-                        Route = "/app/commission/setting",
+                        Id=CommissionConsultantGuid,
+                        Name = "Consultant",
+                        Route = "/app/commission/consultant",
                         Icon = "",
                         Order = 2,
                         IsVisible = true,
                         ParentId = CommissionGuid // Home
+                    },
+                    new NavigationItem
+                    {
+                        Id=CommissionSettingGuid,
+                        Name = "Settings",
+                        Route = "/app/commission/setting",
+                        Icon = "",
+                        Order = 3,
+                        IsVisible = true,
+                        ParentId = CommissionGuid // Home
+                    },
+                    new NavigationItem
+                    {
+                        Id=PayoutTherapistGuid,
+                        Name = "Therapist",
+                        Route = "/app/payout/therapist",
+                        Icon = "",
+                        Order = 1,
+                        IsVisible = true,
+                        ParentId = PayoutGuid // Home
+                    },
+                    new NavigationItem
+                    {
+                        Id=PayoutConsultantGuid,
+                        Name = "Consultant",
+                        Route = "/app/payout/consultant",
+                        Icon = "",
+                        Order = 2,
+                        IsVisible = true,
+                        ParentId = PayoutGuid // Home
                     },
                 };
 
@@ -397,6 +442,26 @@ namespace QwenHT.Services
                     {
                         RoleName = roleName,
                         NavigationItemId = CommissionSettingGuid // Home
+                    });
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = CommissionConsultantGuid // Home
+                    });
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = PayoutGuid // Home
+                    });
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = PayoutTherapistGuid // Home
+                    });
+                    context.RoleNavigations.Add(new RoleNavigation
+                    {
+                        RoleName = roleName,
+                        NavigationItemId = PayoutConsultantGuid // Home
                     });
                 }
                 await context.SaveChangesAsync();
