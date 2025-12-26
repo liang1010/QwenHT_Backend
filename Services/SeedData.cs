@@ -160,7 +160,7 @@ namespace QwenHT.Services
                     new NavigationItem
                     {
                         Id = PayoutGuid,
-                        Name = "Commission",
+                        Name = "Payout",
                         Route = "",
                         Icon = "",
                         Order = 4,

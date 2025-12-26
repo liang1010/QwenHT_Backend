@@ -22,6 +22,8 @@ namespace QwenHT.Data
         public DbSet<Menu> Menus { get; set; }
         public DbSet<Sales> Sales { get; set; }
         public DbSet<Incentive> Incentives { get; set; }
+        public DbSet<TherapistPayout> TherapistPayouts { get; set; }
+        public DbSet<ConsultantPayout> ConsultantPayouts { get; set; }
 
 
 
@@ -211,6 +213,38 @@ namespace QwenHT.Data
                 // Relationships
                 entity.HasOne(s => s.Staff)
                       .WithMany(st => st.IncentiveRecords)
+                      .HasForeignKey(s => s.StaffId)
+                      .OnDelete(DeleteBehavior.Restrict); // Avoid cascade delete
+
+                // Configure timestamp fields for Sales
+                entity.Property(e => e.CreatedAt);
+                entity.Property(e => e.LastUpdated);
+            });
+
+
+
+            builder.Entity<TherapistPayout>(entity =>
+            {
+                entity.HasKey(s => s.Id);
+
+                // Relationships
+                entity.HasOne(s => s.Staff)
+                      .WithMany(st => st.TherapistPayouts)
+                      .HasForeignKey(s => s.StaffId)
+                      .OnDelete(DeleteBehavior.Restrict); // Avoid cascade delete
+
+                // Configure timestamp fields for Sales
+                entity.Property(e => e.CreatedAt);
+                entity.Property(e => e.LastUpdated);
+            });
+
+            builder.Entity<ConsultantPayout>(entity =>
+            {
+                entity.HasKey(s => s.Id);
+
+                // Relationships
+                entity.HasOne(s => s.Staff)
+                      .WithMany(st => st.ConsultantPayouts)
                       .HasForeignKey(s => s.StaffId)
                       .OnDelete(DeleteBehavior.Restrict); // Avoid cascade delete
 

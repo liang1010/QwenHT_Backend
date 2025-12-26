@@ -48,6 +48,9 @@ namespace QwenHT.Models
         public ICollection<BankAccount> BankAccounts { get; set; } = new List<BankAccount>();
         public ICollection<Sales> SalesRecords { get; set; } = new List<Sales>();
         public ICollection<Incentive> IncentiveRecords { get; set; } = new List<Incentive>();
+        public ICollection<TherapistPayout> TherapistPayouts { get; set; } = new List<TherapistPayout>();
+        public ICollection<ConsultantPayout> ConsultantPayouts { get; set; } = new List<ConsultantPayout>();
+        
     }
 
     public class StaffEmployment

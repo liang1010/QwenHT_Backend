@@ -226,6 +226,159 @@ namespace QwenHT.Controllers
             return File(pdfBytes, "application/pdf", fileName);
         }
 
+        // GET api/commission/therapist/pdf - Generate therapist commission PDF report (grouped by date and menu code)
+        [HttpGet("therapist/insertPayout")]
+        public async Task<IActionResult> InsertPayout(
+            [FromQuery] Guid staffId,
+            [FromQuery] DateTimeOffset? startDate = null,
+            [FromQuery] DateTimeOffset? endDate = null)
+        {
+            var username = User?.Claims?.FirstOrDefault(c => c.Type == "username")?.Value ?? "Unknown";
+            var staff = await _context.Staff.Where(x => x.Id == staffId).FirstOrDefaultAsync();
+            // Step 1: Fetch all required sales data in a single query for efficiency
+            var salesData = await GetSalesDataAsync(staffId, startDate, endDate);
+
+            // Step 2: Group sales by date and menu code to create daily summaries
+            var groupedCommissions = GroupSalesByDateAndMenu(salesData);
+
+            // Step 3: Initialize the main report object with basic commission data
+            var result = new TherapistCommissionReportDto
+            {
+                Commissions = groupedCommissions,
+                Incentives = new List<TherapistIncentiveDto>() // Initialize with empty list
+            };
+
+            // Step 4: Retrieve staff compensation settings to determine calculation method
+            var staffCompensation = await _context.StaffCompensations
+                .FirstOrDefaultAsync(x => x.StaffId == staffId);
+
+            // If no compensation setup is found, return basic commission data only
+            if (staffCompensation == null)
+                return Ok(result);
+
+            // Step 5: Set compensation type flags for frontend reference
+            result.IsGuaranteeIncome = staffCompensation.IsGuaranteeIncome;
+            result.IsRate = staffCompensation.IsRate;
+            result.IsCommissionPercentage = staffCompensation.IsCommissionPercentage;
+
+            // Step 6: Calculate compensation details based on staff compensation setup
+            if (staffCompensation.IsRate)
+            {
+                // Calculate rate-based commission details
+                result.RateBase = GetTherapistRateBasedCommissionDto(groupedCommissions, staffCompensation, startDate);
+
+                // If the period doesn't start on the 1st day of the month, calculate full month hours for comparison
+                if (startDate.HasValue && startDate.Value.LocalDateTime.Day != 1)
+                {
+                    var fullMonthHours = await GetFullMonthHoursForComparisonAsync(staffId, startDate.Value);
+                    result.RateBase.AllPeriodHrs = Math.Round(fullMonthHours, 2);
+                }
+            }
+            else if (staffCompensation.IsCommissionPercentage)
+            {
+                // Calculate percentage-based commission details
+                result.CommissionPercentage = GetTherapistPercentageBasedCommissionDto(groupedCommissions, staffCompensation, startDate);
+
+                // If the period doesn't start on the 1st day of the month, calculate full month hours for comparison
+                if (startDate.HasValue && startDate.Value.LocalDateTime.Day != 1)
+                {
+                    var fullMonthHours = await GetFullMonthHoursForComparisonAsync(staffId, startDate.Value);
+                    result.CommissionPercentage.AllPeriodHrs = Math.Round(fullMonthHours, 2);
+                }
+            }
+
+            // Step 7: Calculate guarantee income if applicable
+            // Only calculate if guarantee is enabled and the reporting period doesn't start on the 1st of the month
+            if (staffCompensation.IsGuaranteeIncome && startDate.HasValue && startDate.Value.LocalDateTime.Day != 1)
+            {
+                result.GuaranteeIncome = await CalculateTherapistGuaranteeIncomeAsync(staffId, staffCompensation, startDate.Value, endDate);
+            }
+
+
+            // Step 8: Get Incentive
+            var local = startDate.Value.LocalDateTime;
+            var day = local.Day == 1
+                ? 15
+                : DateTime.DaysInMonth(local.Year, local.Month);
+
+            var incentiveDate = new DateTimeOffset(
+                local.Year,
+                local.Month,
+                day,
+                0, 0, 0,
+                startDate.Value.Offset
+            );
+
+            var incentive = await _context.Incentives.Where(x => x.StaffId == staffId && x.Status == 1 && x.IncentiveDate == endDate).ToListAsync();
+
+
+            if (incentive.Count > 0)
+            {
+                result.Incentives = new List<TherapistIncentiveDto>();
+
+                foreach (var item in incentive)
+                {
+
+                    result.Incentives.Add(new TherapistIncentiveDto
+                    {
+                        IncentiveDate = item.IncentiveDate,
+                        Amount = item.Amount,
+                        Description = item.Description,
+                        Id = item.Id,
+                        Remark = item.Remark
+                    });
+                }
+
+
+
+                result.TotalIncentive = result.Incentives.Sum(x => x.Amount);
+            }
+
+            if (result.IsRate)
+            {
+                result.TotalPayout = result.TotalIncentive + result.RateBase.TotalCommission;
+            }
+            else if (result.IsCommissionPercentage)
+            {
+
+                result.TotalPayout = result.TotalIncentive + result.CommissionPercentage.TotalCommission;
+            }
+
+            var existings = await _context.TherapistPayouts.Where(x => x.StaffId == staffId && x.PayoutDate == endDate && x.Status == 1).ToListAsync();
+            if (existings.Count > 0)
+            {
+                foreach (var item in existings)
+                {
+                    item.Status = 0;
+                }
+                _context.TherapistPayouts.UpdateRange(existings);
+                await _context.SaveChangesAsync();
+            }
+
+            var therapistPayout = new TherapistPayout
+            {
+                Id = Guid.NewGuid(),
+                PayoutDate = (DateTimeOffset)endDate,
+                StaffId = staffId,
+                FootAmount = result.IsRate ? result.RateBase.TotalFootCommission : 0,
+                BodyAmount = result.IsRate ? result.RateBase.TotalBodyCommission : 0,
+                StaffAmount = result.IsRate ? result.RateBase.TotalStaffCommission : result.CommissionPercentage.TotalStaffCommission,
+                ExtraAmount = result.IsRate ? result.RateBase.TotalExtraCommission : result.CommissionPercentage.TotalExtraCommission,
+                IncentiveAmount = result.TotalIncentive,
+                TotalAmount = result.TotalPayout,
+                Status = 1,
+                CreatedBy = username,
+                CreatedAt = DateTimeOffset.UtcNow,
+                LastUpdated = DateTimeOffset.UtcNow,
+                LastModifiedBy = username
+            };
+            await _context.TherapistPayouts.AddAsync(therapistPayout);
+            await _context.SaveChangesAsync();
+
+
+            return Ok();
+        }
+
         [HttpGet("therapist/staff/active")]
         public async Task<ActionResult<IEnumerable<ActiveStaffDto>>> GetActiveStaff()
         {

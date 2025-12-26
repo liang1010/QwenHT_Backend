@@ -328,7 +328,7 @@ namespace QwenHT.Controllers
                 _ when sortField?.ToLower() == "status" => sortDirection?.ToLower() == "desc"
                     ? query.OrderByDescending(s => s.Status)
                     : query.OrderBy(s => s.Status),
-                _ => query.OrderBy(s => s.FullName) // Default sort
+                _ => query.OrderByDescending(s => s.Status).ThenBy(s=>s.NickName) // Default sort
             };
 
             // Get total count of matching records before pagination

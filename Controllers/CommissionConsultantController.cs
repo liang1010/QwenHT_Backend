@@ -206,6 +206,107 @@ namespace QwenHT.Controllers
             return File(pdfBytes, "application/pdf", fileName);
         }
 
+        [HttpGet("consultant/insertPayout")]
+        public async Task<IActionResult> insertPayout(
+            [FromQuery] Guid staffId,
+            [FromQuery] DateTimeOffset? startDate = null,
+            [FromQuery] DateTimeOffset? endDate = null)
+        {
+            var username = User?.Claims?.FirstOrDefault(c => c.Type == "username")?.Value ?? "Unknown";
+            // Get the current user for CreatedBy field
+            var currentUser = User?.Identity?.Name ?? "System";
+            // Step 1: Fetch all required sales data in a single query for efficiency
+            var salesData = await GetSalesDataAsync(staffId, startDate, endDate);
+
+            // Step 2: Group sales by date and menu code to create daily summaries
+            var groupedTreatmentCommissions = GroupSalesByDateAndMenu(salesData, true);
+            var groupedProductCommissions = GroupSalesByDateAndMenu(salesData, false);
+
+            // Step 3: Initialize the main report object with basic commission data
+            var result = new ConsultantCommissionReportDto
+            {
+                TreatmentCommissions = groupedTreatmentCommissions,
+                ProductCommissions = groupedProductCommissions
+            };
+
+
+            var staff = await _context.Staff
+                .FirstOrDefaultAsync(x => x.Id == staffId);
+
+
+            result.CommissionPercentage = new ConsultantPercentageBasedCommissionDto()
+            {
+                TotalProductExtraCommission = result.ProductCommissions.Sum(x => x.ExtraCommission),
+                TotalProductPrice = result.ProductCommissions.Sum(x => x.Price),
+
+                TotalTreatmentExtraCommission = result.TreatmentCommissions.Sum(x => x.ExtraCommission),
+                TotalTreatmentPrice = result.TreatmentCommissions.Sum(x => x.Price),
+            };
+
+            var query = _context.OptionValues.AsQueryable();
+
+
+            List<string> strings = new List<string>() {
+"TREATMENT_PERCENT",
+"PRODUCT_PERCENT_TIER_1",
+"PRODUCT_PERCENT_TIER_2",
+"PRODUCT_TARGET" };
+
+            query = query.Where(ov => strings.Contains(ov.Category));
+            var optionValues = await query.ToListAsync();
+
+            decimal.TryParse(optionValues.Where(x => x.Category == "TREATMENT_PERCENT").First().Value, out decimal _treatmentPercentage);
+            result.CommissionPercentage.TreatmentPercentage = _treatmentPercentage;
+
+            decimal.TryParse(optionValues.Where(x => x.Category == "PRODUCT_TARGET").First().Value, out decimal _productTarget);
+
+            if (result.CommissionPercentage.TotalProductPrice >= _productTarget)
+            {
+                decimal.TryParse(optionValues.Where(x => x.Category == "PRODUCT_PERCENT_TIER_2").First().Value, out decimal PRODUCT_PERCENT_TIER_2);
+                result.CommissionPercentage.ProductPercentage = PRODUCT_PERCENT_TIER_2;
+            }
+            else
+            {
+                decimal.TryParse(optionValues.Where(x => x.Category == "PRODUCT_PERCENT_TIER_1").First().Value, out decimal PRODUCT_PERCENT_TIER_1);
+                result.CommissionPercentage.ProductPercentage = PRODUCT_PERCENT_TIER_1;
+            }
+
+            result.CommissionPercentage.TotalProductCommission = Math.Round((result.CommissionPercentage.TotalProductPrice * (result.CommissionPercentage.ProductPercentage / 100)) + result.CommissionPercentage.TotalProductExtraCommission, 2);
+            result.CommissionPercentage.TotalTreatmentCommission = Math.Round((result.CommissionPercentage.TotalTreatmentPrice * (result.CommissionPercentage.TreatmentPercentage / 100)) + result.CommissionPercentage.TotalTreatmentExtraCommission, 2);
+
+            result.TotalPayout = Math.Round(result.CommissionPercentage.TotalProductCommission + result.CommissionPercentage.TotalTreatmentCommission, 2);
+
+            var existings = await _context.ConsultantPayouts.Where(x => x.StaffId == staffId && x.PayoutDate == endDate && x.Status == 1).ToListAsync();
+            if (existings.Count > 0)
+            {
+                foreach (var item in existings)
+                {
+                    item.Status = 0;
+                }
+                _context.ConsultantPayouts.UpdateRange(existings);
+                await _context.SaveChangesAsync();
+            }
+
+            var consultantPayout = new ConsultantPayout
+            {
+                Id = Guid.NewGuid(),
+                PayoutDate = (DateTimeOffset)endDate,
+                StaffId = staffId,
+                ProductAmount = result.CommissionPercentage.TotalProductCommission,
+                TreatmentAmount = result.CommissionPercentage.TotalTreatmentCommission,
+                TotalAmount = result.TotalPayout,
+                Status = 1,
+                CreatedBy = username,
+                CreatedAt = DateTimeOffset.UtcNow,
+                LastUpdated = DateTimeOffset.UtcNow,
+                LastModifiedBy = username
+            };
+            await _context.ConsultantPayouts.AddAsync(consultantPayout);
+            await _context.SaveChangesAsync();
+
+            return Ok();
+        }
+
         [HttpGet("consultant")]
         public async Task<ActionResult<ConsultantCommissionReportDto>> GetConsultantCommission(
            [FromQuery] Guid staffId,
