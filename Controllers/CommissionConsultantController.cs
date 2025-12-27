@@ -14,90 +14,6 @@ namespace QwenHT.Controllers
     [Authorize(Policy = "NavigationAccess")] // Use custom policy based on navigation permissions
     public class CommissionConsultantController(ApplicationDbContext _context) : ControllerBase
     {
-
-
-
-        [HttpPost("consultant/incentives")]
-        public async Task<ActionResult<Incentive>> CreateIncentive(CreateIncentive menuDto)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            // Get current user from JWT claims
-            var username = User?.Claims?.FirstOrDefault(c => c.Type == "username")?.Value ?? "Unknown";
-
-            var menu = new Incentive
-            {
-                Id = Guid.NewGuid(),
-                Amount = menuDto.Amount,
-                IncentiveDate = menuDto.IncentiveDate,
-                Remark = menuDto.Remark,
-                Description = menuDto.Description,
-                StaffId = menuDto.StaffId,
-                Status = 1,
-                CreatedBy = username,
-                CreatedAt = DateTimeOffset.UtcNow,
-                LastUpdated = DateTimeOffset.UtcNow,
-                LastModifiedBy = username
-            };
-
-            _context.Incentives.Add(menu);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(CreateIncentive), new { id = menu.Id }, menu);
-        }
-
-        [HttpPost("consultant/incentives/{id}")]
-        public async Task<IActionResult> UpdateMenu(Guid id, CreateIncentive menuDto)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var menu = await _context.Incentives.FindAsync(id);
-
-            if (menu == null)
-            {
-                return NotFound();
-            }
-
-            // Get current user from JWT claims
-            var username = User?.Claims?.FirstOrDefault(c => c.Type == "username")?.Value ?? "Unknown";
-            menu.Description = menuDto.Description;
-            menu.Remark = menuDto.Remark;
-            menu.Amount = menuDto.Amount;
-            menu.IncentiveDate = menuDto.IncentiveDate;
-            menu.Status = 1;
-            menu.LastUpdated = DateTimeOffset.UtcNow;
-            menu.LastModifiedBy = username;
-
-            _context.Incentives.Update(menu);
-            await _context.SaveChangesAsync();
-
-            return Ok(menu);
-        }
-
-        [HttpPost("consultant/incentives/{id}/delete")]
-        public async Task<IActionResult> DeleteMenu(Guid id)
-        {
-            var menu = await _context.Incentives.FindAsync(id);
-
-            if (menu == null)
-            {
-                return NotFound();
-            }
-
-            menu.Status = 0;
-            _context.Incentives.Update(menu);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-
         [HttpGet("consultant/staff/active")]
         public async Task<ActionResult<IEnumerable<ActiveStaffDto>>> GetActiveStaff()
         {
@@ -129,8 +45,7 @@ namespace QwenHT.Controllers
         public async Task<IActionResult> GetConsultantCommissionReport(
             [FromQuery] Guid staffId,
             [FromQuery] DateTimeOffset? startDate = null,
-            [FromQuery] DateTimeOffset? endDate = null,
-            [FromQuery] bool? incentive = false)
+            [FromQuery] DateTimeOffset? endDate = null)
         {
             // Get the current user for CreatedBy field
             var currentUser = User?.Identity?.Name ?? "System";
@@ -379,7 +294,7 @@ namespace QwenHT.Controllers
             return Ok(result);
         }
 
-        private async Task<List<ConsultantSalesCommissionDto>> GetSalesDataAsync(Guid staffId, DateTimeOffset? startDate, DateTimeOffset? endDate)
+        private async Task<List<DailyConsultantCommissionSummaryDto>> GetSalesDataAsync(Guid staffId, DateTimeOffset? startDate, DateTimeOffset? endDate)
         {
             var query = _context.Sales
            .Include(s => s.Menu)
@@ -393,7 +308,7 @@ namespace QwenHT.Controllers
                 query = query.Where(s => s.SalesDate <= endDate.Value); // Use <= since we normalized to date
 
             var data = await query
-                .Select(s => new ConsultantSalesCommissionDto
+                .Select(s => new DailyConsultantCommissionSummaryDto
                 {
                     SalesDate = s.SalesDate,
                     MenuCode = s.Menu.Code,
@@ -407,7 +322,7 @@ namespace QwenHT.Controllers
         }
 
 
-        private List<DailyConsultantCommissionSummaryDto> GroupSalesByDateAndMenu(List<ConsultantSalesCommissionDto> rawData, bool isTreatment)
+        private List<DailyConsultantCommissionSummaryDto> GroupSalesByDateAndMenu(List<DailyConsultantCommissionSummaryDto> rawData, bool isTreatment)
         {
             return rawData
                 .Where(x => x.isTreatment == isTreatment)
@@ -426,19 +341,12 @@ namespace QwenHT.Controllers
 
     }
 
-    public class ConsultantSalesCommissionDto
-    {
-        public DateTimeOffset SalesDate { get; set; }
-        public string MenuCode { get; set; }
-        public bool isTreatment { get; set; }
-        public decimal ExtraCommission { get; set; }
-        public decimal Price { get; set; }
-    }
 
     public class DailyConsultantCommissionSummaryDto
     {
         public string Id { get; set; } = string.Empty;
         public DateTimeOffset SalesDate { get; set; }
+        public bool isTreatment { get; set; }
         public string MenuCode { get; set; } = string.Empty;
         public decimal ExtraCommission { get; set; }
         public decimal Price { get; set; }
